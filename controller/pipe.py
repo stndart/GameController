@@ -71,13 +71,20 @@ class PipeMixin:
                     return message.decode("utf-8")
             except win32pipe.error as e:
                 if e.winerror == ERROR_NO_DATA:
-                    if self.pending:
-                        return self.pending.decode("utf-8")
-                    else:
-                        sleep(0.1)
-                        continue
+                    if separator and separator in self.pending:
+                        message, self.pending = self.pending.split(separator, 1)
+                        return message.decode("utf-8")
+                    sleep(0.1)
+                    continue
                 elif e.winerror in [ERROR_BROKEN_PIPE, ERROR_PIPE_NOT_CONNECTED]:
-                    return self.pending.decode("utf-8")
+                    if separator and separator in self.pending:
+                        message, self.pending = self.pending.split(separator, 1)
+                        return message.decode("utf-8")
+                    if self.pending:
+                        message = self.pending
+                        self.pending = b""
+                        return message.decode("utf-8")
+                    return ""
                 raise e
         raise TimeoutError("Timeout reading from pipe")
 

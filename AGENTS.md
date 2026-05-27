@@ -18,6 +18,7 @@ When used as a submodule, prefer this style (make sure parent "justfile" include
 - `processes` - list of running GAME.exe / GameLauncher.exe
 - `status` - current session status
 - `stages` - known stages + seen stages for current session
+- `kill` - kills the running GAME.exe instance.
 - `kill-all` - kills all running GAME.exe / GameLauncher.exe processes
 - `copy-dll [dll_config=]` - copies fresh dll to the game directory. dll_config=debug/release (debug by default)
 - `copy-logs` - copies logs from game directory to "logs/runs/`<run_id>`/"
@@ -30,7 +31,6 @@ When used as a submodule, prefer this style (make sure parent "justfile" include
 - `run-session-offline [dllconfig=] [server_ip=]` - the same chain except `launch` is replaced with `launch-offline [server_ip]`. server_ip=127.0.0.1 by default.
 
 ### Commands not working at the moment
-- `kill` - kills the running GAME.exe instance. The PID is not captured correctly, so does nothing ATM.
 - `launch` and `run-session` - auth server is down, the game stucks at "connecting_to_server" stage.
 
 ### Commands available only with human approval

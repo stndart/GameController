@@ -78,13 +78,13 @@ class GameState:
     def record_step(self, name: str) -> None:
         self.progress.steps.append({"name": name, "at": _utc_now()})
 
-    def start(self, launcher_pid: int) -> None:
-        if self.game_pid is not None:
+    def start(self, launcher_pid: int, *, pid_timeout: float = 120.0) -> None:
+        if self._running:
             raise RuntimeError("session already active")
 
         self._running = True
         self.run_id = new_run_id()
-        self.game_pid = launcher_pid
+        self.game_pid = None
         self.progress = Progress(
             phase=SessionPhase.launched,
             started_at=_utc_now(),
@@ -98,6 +98,36 @@ class GameState:
 
         self.diag_thread = Thread(target=self.diag_thread_func, daemon=True)
         self.diag_thread.start()
+
+        if not self.wait_for_game_pid(pid_timeout):
+            self.end_session()
+            raise RuntimeError("timed out waiting for game pid from diagnostics pipe")
+
+    def wait_for_game_pid(self, timeout: float) -> bool:
+        with self._stage_cond:
+            if self.game_pid is not None:
+                return True
+            if timeout <= 0:
+                return False
+            deadline = monotonic() + timeout
+            while self.game_pid is None:
+                remaining = deadline - monotonic()
+                if remaining <= 0:
+                    return False
+                self._stage_cond.wait(timeout=remaining)
+            return True
+
+    def _on_diag_event(self, event: dict[str, Any]) -> None:
+        pid = event.get("pid")
+        if self.game_pid is None and isinstance(pid, int):
+            with self._stage_cond:
+                self.game_pid = pid
+                self.record_step("game_pid")
+                self._stage_cond.notify_all()
+            print(f"[daemon] game_pid={pid} run_id={self.run_id}")
+
+        if event.get("type") == "game_state":
+            self._on_stage(str(event.get("phase", "")))
 
     def _on_stage(self, phase: str) -> None:
         if not phase:
@@ -146,8 +176,8 @@ class GameState:
                 self.progress.events_count += 1
                 try:
                     event = json.loads(line)
-                    if event.get("type") == "game_state":
-                        self._on_stage(str(event.get("phase", "")))
+                    if isinstance(event, dict):
+                        self._on_diag_event(event)
                 except json.JSONDecodeError:
                     pass
             except Exception as e:
@@ -198,6 +228,7 @@ class GameState:
             "game_states": list(self.progress.game_states),
             "progress": self.progress.to_dict(),
             "launcher_pid": self.progress.launcher_pid,
+            "game_pid": self.game_pid,
         }
         meta_path(self.run_id).write_text(
             json.dumps(meta, indent=2) + "\n", encoding="utf-8"

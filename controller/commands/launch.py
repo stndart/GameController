@@ -36,7 +36,7 @@ class LaunchCommand(Command):
     offline: bool = False
 
     def invoke(self, settings: Settings, state: GameState) -> str:
-        if state.game_pid is not None:
+        if state._running:
             raise LaunchCommandError("Game is already running")
 
         launch_settings = LaunchSettings()
@@ -73,17 +73,22 @@ class LaunchCommand(Command):
         except (RuntimeError, urllib.error.URLError, OSError) as e:
             raise LaunchCommandError(f"Failed to launch game: {e}") from e
 
-        state.start(proc.pid)
+        try:
+            state.start(proc.pid)
+        except RuntimeError as e:
+            raise LaunchCommandError(str(e)) from e
 
         print(
             f"run_id={state.run_id} config={launch_settings.get_config_path()} "
             f"game={game_exe} server={server_ip} "
-            f"kernel_check_disable={kernel_check_disable} pid={proc.pid}"
+            f"kernel_check_disable={kernel_check_disable} "
+            f"launcher_pid={proc.pid} game_pid={state.game_pid}"
         )
         return dumps(
             {
                 "run_id": state.run_id,
-                "pid": proc.pid,
+                "pid": state.game_pid,
+                "launcher_pid": proc.pid,
                 "run_dir": str(state.run_dir_path) if state.run_dir_path else None,
             }
         )

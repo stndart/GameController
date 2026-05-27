@@ -8,7 +8,6 @@ from typing import Literal
 
 from config import Settings
 from gamestate import CommandError, GameState
-from gamestate.gamestate import SessionPhase
 from gamestate.stages import is_known_stage
 
 from .common import Command
@@ -20,7 +19,7 @@ class WaitForStageCommand(Command):
     timeout: float = 120.0
 
     def invoke(self, settings: Settings, state: GameState) -> str:
-        if state.progress.phase != SessionPhase.launched and state.game_pid is None:
+        if not state._running:
             raise CommandError("No active session; launch the game first")
 
         if not is_known_stage(self.stage):

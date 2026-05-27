@@ -59,10 +59,9 @@ class KillCommand(Command):
                 state.end_session()
             return dumps({"killed": killed})
 
-        if state.game_pid is None:
+        pid = state.game_pid or state.progress.launcher_pid
+        if pid is None:
             raise KillCommandError("No game running")
-
-        pid = state.game_pid
         result = _taskkill_by_pid(pid)
         state.end_session()
         return dumps({"killed": [result]})
