@@ -34,8 +34,6 @@ class CopyDllCommand(Command):
     game_exe: str | None = None
 
     def invoke(self, settings: Settings, state: GameState) -> str:
-        print(settings.dll_configs)
-        print(self.dll_config, self.dll_source, self.game_exe)
         launch_settings = LaunchSettings()
         if self.game_exe is not None:
             launch_settings.GAME_PATH = Path(self.game_exe)
