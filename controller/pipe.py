@@ -63,7 +63,7 @@ class PipeMixin:
 
     def read_message(self, timeout: float = 1, separator: bytes = b"\n") -> str:
         ts = monotonic()
-        while monotonic() - ts < timeout:
+        while monotonic() - ts < timeout or timeout < 0:
             try:
                 self.pending += self.read_bytes()
                 if separator and separator in self.pending:

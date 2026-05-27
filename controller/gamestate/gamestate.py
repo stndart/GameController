@@ -61,7 +61,7 @@ class GameState:
     events_file: TextIO | None = None
     run_dir_path: Path | None = None
     _stage_cond: Condition
-    timeout: float = 30  # timeout between diagnostics reads
+    timeout: float = -1  # timeout between diagnostics reads
 
     def __init__(self, diag_pipe: PipeServer):
         self.diag_pipe = diag_pipe
