@@ -36,8 +36,8 @@ class Ctl:
             try:
                 sleep(0.1)
                 if self.ctl_pipe.accept():
-                    command = self.ctl_pipe.read()
-                    self.ctl_pipe.write(self.execute_command(command))
+                    command = self.ctl_pipe.read_message()
+                    self.ctl_pipe.write_message(self.execute_command(command))
                     self.ctl_pipe.disconnect()
             except KeyboardInterrupt:
                 print("Keyboard interrupt received")

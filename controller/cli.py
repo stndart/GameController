@@ -48,8 +48,9 @@ def rpc(command: Command, *, timeout: float = 30.0) -> dict:
         raise DaemonNotRunningError(DAEMON_HINT) from e
 
     try:
-        client.write(command.model_dump_json())
-        raw = client.read()
+        if not client.write_message(command.model_dump_json()):
+            raise DaemonNotRunningError("Failed to invoke rpc.")
+        raw = client.read_message()
     finally:
         client.close()
 
