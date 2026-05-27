@@ -12,7 +12,7 @@ from time import monotonic, sleep
 from typing import Any, TextIO
 
 from paths import events_path, meta_path, new_run_id, run_dir, write_last_run
-from pipe import PipeServer
+from pipe import PipeDisconnectedError, PipeServer
 
 
 def _utc_now() -> str:
@@ -171,18 +171,24 @@ class GameState:
         while self._running:
             try:
                 line = self.diag_pipe.read_message(timeout=self.timeout)
-                self.events_file.write(line.removesuffix("\n") + "\n")
-                self.events_file.flush()
-                self.progress.events_count += 1
-                try:
-                    event = json.loads(line)
-                    if isinstance(event, dict):
-                        self._on_diag_event(event)
-                except json.JSONDecodeError:
-                    pass
+            except PipeDisconnectedError:
+                break
             except Exception as e:
                 print(f"[daemon] diagnostics read error: {e}")
                 break
+
+            if not line.strip():
+                continue
+
+            self.events_file.write(line.removesuffix("\n") + "\n")
+            self.events_file.flush()
+            self.progress.events_count += 1
+            try:
+                event = json.loads(line)
+                if isinstance(event, dict):
+                    self._on_diag_event(event)
+            except json.JSONDecodeError:
+                pass
 
         try:
             self.diag_pipe.disconnect()

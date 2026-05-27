@@ -55,7 +55,10 @@ class KillCommand(Command):
     def invoke(self, settings: Settings, state: GameState) -> str:
         if self.all:
             killed = [_taskkill_by_image(image) for image in DEFAULT_KILL_IMAGES]
-            if state.progress.phase == SessionPhase.launched:
+            if state._running or state.progress.phase not in (
+                SessionPhase.idle,
+                SessionPhase.ended,
+            ):
                 state.end_session()
             return dumps({"killed": killed})
 

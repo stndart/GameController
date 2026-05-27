@@ -22,6 +22,10 @@ if TYPE_CHECKING:
 MAX_BUFFER_SIZE = 100000
 
 
+class PipeDisconnectedError(OSError):
+    """Diagnostics or control pipe closed by the peer."""
+
+
 def _pipe_name(name: str) -> str:
     return f"\\\\.\\pipe\\{name}"
 
@@ -68,23 +72,34 @@ class PipeMixin:
                 self.pending += self.read_bytes()
                 if separator and separator in self.pending:
                     message, self.pending = self.pending.split(separator, 1)
-                    return message.decode("utf-8")
+                    text = message.decode("utf-8")
+                    if text:
+                        return text
+                    continue
             except win32pipe.error as e:
                 if e.winerror == ERROR_NO_DATA:
                     if separator and separator in self.pending:
                         message, self.pending = self.pending.split(separator, 1)
-                        return message.decode("utf-8")
+                        text = message.decode("utf-8")
+                        if text:
+                            return text
                     sleep(0.1)
                     continue
                 elif e.winerror in [ERROR_BROKEN_PIPE, ERROR_PIPE_NOT_CONNECTED]:
                     if separator and separator in self.pending:
                         message, self.pending = self.pending.split(separator, 1)
-                        return message.decode("utf-8")
+                        text = message.decode("utf-8")
+                        if text:
+                            return text
                     if self.pending:
                         message = self.pending
                         self.pending = b""
-                        return message.decode("utf-8")
-                    return ""
+                        text = message.decode("utf-8")
+                        if text:
+                            return text
+                    raise PipeDisconnectedError(
+                        f"pipe disconnected (winerror={e.winerror})"
+                    ) from e
                 raise e
         raise TimeoutError("Timeout reading from pipe")
 
