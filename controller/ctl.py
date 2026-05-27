@@ -32,10 +32,10 @@ class Ctl:
 
     def run_daemon(self) -> None:
         self._running = True
-        print(
+        log.info(
             f"thegame-ctl daemon pid={os.getpid()} pipe={self.settings.ctl_pipe_name}"
         )
-        print("Press Ctrl+C to stop the daemon")
+        log.info("Press Ctrl+C to stop the daemon")
         while self._running:
             try:
                 sleep(0.1)
@@ -72,6 +72,10 @@ class Ctl:
 
 
 def main() -> None:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    )
     Ctl(Settings()).run_daemon()
 
 
