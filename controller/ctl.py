@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 from time import sleep
 
@@ -10,6 +11,8 @@ from commands import StopCommand, command_adapter
 from config import Settings
 from gamestate import GameState
 from pipe import PipeServer
+
+log = logging.getLogger(__name__)
 
 
 class Ctl:
@@ -38,6 +41,7 @@ class Ctl:
                 sleep(0.1)
                 if self.ctl_pipe.accept():
                     command = self.ctl_pipe.read_message()
+                    log.info(f"Received command: {command}")
                     self.ctl_pipe.write_message(self.execute_command(command))
                     self.ctl_pipe.disconnect()
             except KeyboardInterrupt:
