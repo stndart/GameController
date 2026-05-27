@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import logging
 import os
 from time import sleep
 
@@ -11,8 +10,6 @@ from commands import StopCommand, command_adapter
 from config import Settings
 from gamestate import GameState
 from pipe import PipeServer
-
-log = logging.getLogger(__name__)
 
 
 class Ctl:
@@ -32,16 +29,16 @@ class Ctl:
 
     def run_daemon(self) -> None:
         self._running = True
-        log.info(
+        print(
             f"thegame-ctl daemon pid={os.getpid()} pipe={self.settings.ctl_pipe_name}"
         )
-        log.info("Press Ctrl+C to stop the daemon")
+        print("Press Ctrl+C to stop the daemon")
         while self._running:
             try:
                 sleep(0.1)
                 if self.ctl_pipe.accept():
                     command = self.ctl_pipe.read_message()
-                    log.info(f"Received command: {command}")
+                    print(f"Received command: {command}")
                     self.ctl_pipe.write_message(self.execute_command(command))
                     self.ctl_pipe.disconnect()
             except KeyboardInterrupt:
@@ -72,10 +69,6 @@ class Ctl:
 
 
 def main() -> None:
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-    )
     Ctl(Settings()).run_daemon()
 
 
