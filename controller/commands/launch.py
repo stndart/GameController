@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from config import Settings
-from gamestate.state import CommandError, GameState
+from gamestate import CommandError, GameState
 from launch_game import (
     Settings as LaunchSettings,
 )

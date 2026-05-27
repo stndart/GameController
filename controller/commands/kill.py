@@ -7,7 +7,8 @@ from json import dumps
 from typing import Any, Literal
 
 from config import Settings
-from gamestate.state import CommandError, GameState, GameStateStatus
+from gamestate import CommandError, GameState
+from gamestate.gamestate import SessionPhase
 
 from .common import Command
 from .processes import DEFAULT_KILL_IMAGES
@@ -54,7 +55,7 @@ class KillCommand(Command):
     def invoke(self, settings: Settings, state: GameState) -> str:
         if self.all:
             killed = [_taskkill_by_image(image) for image in DEFAULT_KILL_IMAGES]
-            if state.status == GameStateStatus.started:
+            if state.progress.phase == SessionPhase.launched:
                 state.end_session()
             return dumps({"killed": killed})
 
