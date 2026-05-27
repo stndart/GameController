@@ -32,12 +32,6 @@ class SessionPhase(StrEnum):
     ended = auto()
 
 
-class Status(StrEnum):
-    created = auto()
-    started = auto()
-    stopped = auto()
-
-
 @dataclass
 class Progress:
     phase: SessionPhase = SessionPhase.idle
@@ -60,11 +54,10 @@ class Progress:
         }
 
 
-class State:
+class GameState:
     """Tracks one game session and background diagnostics pipe reader."""
 
     _running: bool = False
-    status: Status
     run_id: str | None = None
     game_pid: int | None = None
     diag_thread: Thread
@@ -73,9 +66,9 @@ class State:
     events_file: TextIO | None = None
     run_dir_path: Path | None = None
     _stage_cond: Condition
+    timeout: float = 30  # timeout between diagnostics reads
 
     def __init__(self, diag_pipe: PipeServer):
-        self.status = Status.created
         self.diag_pipe = diag_pipe
         self.progress = Progress()
         self._stage_cond = Condition()
@@ -95,7 +88,6 @@ class State:
             raise RuntimeError("session already active")
 
         self._running = True
-        self.status = Status.started
         self.run_id = new_run_id()
         self.game_pid = launcher_pid
         self.progress = Progress(
@@ -153,10 +145,8 @@ class State:
 
         while self._running:
             try:
-                line = self.diag_pipe.read_line()
-                if line is None:
-                    break
-                self.events_file.write(line + "\n")
+                line = self.diag_pipe.read_message(timeout=self.timeout)
+                self.events_file.write(line.removesuffix("\n") + "\n")
                 self.events_file.flush()
                 self.progress.events_count += 1
                 try:
@@ -182,7 +172,6 @@ class State:
     def end_session(self) -> None:
         """Stop diagnostics reader, finalize meta; keep run_id for copy_logs."""
         self._running = False
-        self.status = Status.stopped
         self.game_pid = None
 
         if self.diag_thread.is_alive():

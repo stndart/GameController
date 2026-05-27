@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Literal
 
 from config import Settings
+from gamestate.state import CommandError, GameState
 from launch_game import Settings as LaunchSettings
 from paths import (
     GAME_LOGS_FILE,
@@ -20,7 +21,6 @@ from paths import (
 )
 
 from .common import Command
-from .state import CommandError, State
 
 
 class CopyLogsCommandError(CommandError):
@@ -57,7 +57,7 @@ class CopyLogsCommand(Command):
     run_id: str | None = None
     game_exe: str | None = None
 
-    def invoke(self, settings: Settings, state: State) -> str:
+    def invoke(self, settings: Settings, state: GameState) -> str:
         try:
             run_id = resolve_run_id(self.run_id or state.run_id)
         except ValueError as e:

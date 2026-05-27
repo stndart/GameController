@@ -4,10 +4,10 @@ from pathlib import Path
 from typing import Literal
 
 from config import Settings
+from gamestate.state import CommandError, GameState
 from launch_game import Settings as LaunchSettings
 
 from .common import Command
-from .state import CommandError, State
 
 DllConfig = Literal["debug", "release"]
 
@@ -33,7 +33,7 @@ class CopyDllCommand(Command):
     dll_source: str | None = None
     game_exe: str | None = None
 
-    def invoke(self, settings: Settings, state: State) -> str:
+    def invoke(self, settings: Settings, state: GameState) -> str:
         launch_settings = LaunchSettings()
         if self.game_exe is not None:
             launch_settings.GAME_PATH = Path(self.game_exe)

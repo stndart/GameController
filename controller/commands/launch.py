@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from config import Settings
+from gamestate.state import CommandError, GameState
 from launch_game import (
     Settings as LaunchSettings,
 )
@@ -22,7 +23,6 @@ from launch_game import (
 
 from .common import Command
 from .copy_logs import clear_shipping_game_logs
-from .state import CommandError, State
 
 
 class LaunchCommandError(CommandError):
@@ -35,7 +35,7 @@ class LaunchCommand(Command):
     server_ip: str | None = None
     offline: bool = False
 
-    def invoke(self, settings: Settings, state: State) -> str:
+    def invoke(self, settings: Settings, state: GameState) -> str:
         if state.game_pid is not None:
             raise LaunchCommandError("Game is already running")
 

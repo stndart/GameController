@@ -6,8 +6,9 @@ import json
 import os
 from time import sleep
 
-from commands import State, StopCommand, command_adapter
+from commands import StopCommand, command_adapter
 from config import Settings
+from gamestate import GameState
 from pipe import PipeServer
 
 
@@ -17,14 +18,14 @@ class Ctl:
     settings: Settings
     ctl_pipe: PipeServer
     diag_pipe: PipeServer
-    state: State
+    state: GameState
     _running: bool = False
 
     def __init__(self, settings: Settings):
         self.settings = settings
         self.ctl_pipe = PipeServer(settings.ctl_pipe_name)
         self.diag_pipe = PipeServer(settings.diagnostics_pipe_name)
-        self.state = State(self.diag_pipe)
+        self.state = GameState(self.diag_pipe)
 
     def run_daemon(self) -> None:
         self._running = True

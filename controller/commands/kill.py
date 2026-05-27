@@ -7,10 +7,10 @@ from json import dumps
 from typing import Any, Literal
 
 from config import Settings
+from gamestate.state import CommandError, GameState, GameStateStatus
 
 from .common import Command
 from .processes import DEFAULT_KILL_IMAGES
-from .state import CommandError, State, Status
 
 
 class KillCommandError(CommandError):
@@ -51,10 +51,10 @@ class KillCommand(Command):
     command: Literal["kill"] = "kill"
     all: bool = False
 
-    def invoke(self, settings: Settings, state: State) -> str:
+    def invoke(self, settings: Settings, state: GameState) -> str:
         if self.all:
             killed = [_taskkill_by_image(image) for image in DEFAULT_KILL_IMAGES]
-            if state.status == Status.started:
+            if state.status == GameStateStatus.started:
                 state.end_session()
             return dumps({"killed": killed})
 

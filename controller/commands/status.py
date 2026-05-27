@@ -6,16 +6,16 @@ from json import dumps
 from typing import Literal
 
 from config import Settings
+from gamestate import GameState
 from paths import events_path
 
 from .common import Command
-from .state import State
 
 
 class StatusCommand(Command):
     command: Literal["status"] = "status"
 
-    def invoke(self, settings: Settings, state: State) -> str:
+    def invoke(self, settings: Settings, state: GameState) -> str:
         events_file = None
         run_dir = None
         if state.run_id:

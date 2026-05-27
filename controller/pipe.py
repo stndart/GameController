@@ -44,6 +44,7 @@ class PipeHandle:
 
 class PipeMixin:
     pipe: PipeHandle
+    pending: bytes = b""
 
     def read_bytes(self) -> bytes:
         _error, message = win32file.ReadFile(self.pipe.handle, MAX_BUFFER_SIZE)
@@ -58,21 +59,23 @@ class PipeMixin:
             data = data.encode("utf-8")
         win32file.WriteFile(self.pipe.handle, data)
 
-    def read_message(self, timeout: float = 1) -> str:
-        pending = b""
+    def read_message(self, timeout: float = 1, separator: bytes = b"\n") -> str:
         ts = monotonic()
         while monotonic() - ts < timeout:
             try:
-                pending += self.read_bytes()
+                self.pending += self.read_bytes()
+                if separator and separator in self.pending:
+                    message, self.pending = self.pending.split(separator, 1)
+                    return message.decode("utf-8")
             except win32pipe.error as e:
                 if e.winerror == ERROR_NO_DATA:
-                    if pending:
-                        return pending.decode("utf-8")
+                    if self.pending:
+                        return self.pending.decode("utf-8")
                     else:
                         sleep(0.1)
                         continue
                 elif e.winerror in [ERROR_BROKEN_PIPE, ERROR_PIPE_NOT_CONNECTED]:
-                    return pending.decode("utf-8")
+                    return self.pending.decode("utf-8")
                 raise e
         raise TimeoutError("Timeout reading from pipe")
 

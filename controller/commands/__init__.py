@@ -1,6 +1,7 @@
 from typing import Literal
 
 from config import Settings
+from gamestate import GameState
 from pydantic import TypeAdapter
 
 from .common import Command
@@ -11,7 +12,6 @@ from .launch import LaunchCommand
 from .list_stages import ListStagesCommand
 from .ping import PingCommand
 from .processes import ProcessesCommand
-from .state import State
 from .status import StatusCommand
 from .wait_stage import WaitForStageCommand
 
@@ -19,7 +19,7 @@ from .wait_stage import WaitForStageCommand
 class StopCommand(Command):
     command: Literal["stop"] = "stop"
 
-    def invoke(self, settings: Settings, state: State) -> str:
+    def invoke(self, settings: Settings, state: GameState) -> str:
         return "ok"
 
 
@@ -36,4 +36,4 @@ command_adapter = TypeAdapter(
     | StopCommand
 )
 
-__all__ = ["command_adapter", "State", "StopCommand"]
+__all__ = ["command_adapter", "StopCommand"]

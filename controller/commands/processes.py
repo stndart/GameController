@@ -3,9 +3,9 @@ from json import dumps
 from typing import Literal
 
 from config import Settings
+from gamestate import GameState
 
 from .common import Command
-from .state import State
 
 DEFAULT_KILL_IMAGES = ["GAME.exe", "GameLauncher.exe"]
 
@@ -13,7 +13,7 @@ DEFAULT_KILL_IMAGES = ["GAME.exe", "GameLauncher.exe"]
 class ProcessesCommand(Command):
     command: Literal["processes"] = "processes"
 
-    def invoke(self, settings: Settings, state: State) -> str:
+    def invoke(self, settings: Settings, state: GameState) -> str:
         result: dict[str, list[int]] = {}
         for image in DEFAULT_KILL_IMAGES:
             proc = subprocess.run(

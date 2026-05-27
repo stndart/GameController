@@ -7,10 +7,10 @@ from json import dumps
 from typing import Literal
 
 from config import Settings
-from stages import is_known_stage
+from gamestate.stages import is_known_stage
+from gamestate.state import CommandError, GameState
 
 from .common import Command
-from .state import CommandError, State
 
 
 class WaitForStageCommand(Command):
@@ -18,7 +18,7 @@ class WaitForStageCommand(Command):
     stage: str
     timeout: float = 120.0
 
-    def invoke(self, settings: Settings, state: State) -> str:
+    def invoke(self, settings: Settings, state: GameState) -> str:
         if state.status.value != "started" and state.game_pid is None:
             raise CommandError("No active session; launch the game first")
 

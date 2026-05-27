@@ -1,11 +1,10 @@
 from config import Settings
+from gamestate import GameState
 from pydantic import BaseModel
-
-from .state import State
 
 
 class Command(BaseModel):
     command: str
 
-    def invoke(self, settings: Settings, state: State) -> str:
+    def invoke(self, settings: Settings, state: GameState) -> str:
         raise NotImplementedError("Subclasses must implement this method")

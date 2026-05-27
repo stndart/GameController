@@ -6,16 +6,16 @@ from json import dumps
 from typing import Literal
 
 from config import Settings
-from stages import KNOWN_STAGES
+from gamestate import GameState
+from gamestate.stages import KNOWN_STAGES
 
 from .common import Command
-from .state import State
 
 
 class ListStagesCommand(Command):
     command: Literal["list_stages"] = "list_stages"
 
-    def invoke(self, settings: Settings, state: State) -> str:
+    def invoke(self, settings: Settings, state: GameState) -> str:
         return dumps(
             {
                 "known": list(KNOWN_STAGES),
