@@ -12,10 +12,10 @@ class Settings(BaseSettings):
     diagnostics_pipe_name: str = "thegame-diagnostics"
 
     dll_debug_path: Path = (
-        REPO_ROOT / "build" / "msvc-x86-debug" / "bin" / "TheGame.dll"
+        REPO_ROOT.parent / "build" / "msvc-x86-debug" / "bin" / "TheGame.dll"
     )
     dll_release_path: Path = (
-        REPO_ROOT / "build" / "msvc-x86-release" / "bin" / "TheGame.dll"
+        REPO_ROOT.parent / "build" / "msvc-x86-release" / "bin" / "TheGame.dll"
     )
 
     @property

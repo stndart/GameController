@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import re
+import secrets
 from pathlib import Path
 
 from config import REPO_ROOT
@@ -10,6 +12,9 @@ from config import REPO_ROOT
 LOGS_ROOT = REPO_ROOT / "logs"
 CTL_LOGS_DIR = LOGS_ROOT / "ctl"
 RUNS_DIR = LOGS_ROOT / "runs"
+
+RUN_SEQ_WIDTH = 3
+_RUN_DIR_RE = re.compile(rf"^(\d{{{RUN_SEQ_WIDTH}}})_(.+)$")
 
 LAST_RUN_FILE = CTL_LOGS_DIR / "last_run.json"
 
@@ -26,8 +31,41 @@ def ensure_logs_dirs() -> None:
     RUNS_DIR.mkdir(parents=True, exist_ok=True)
 
 
+def _next_run_seq() -> int:
+    ensure_logs_dirs()
+    max_seq = -1
+    for entry in RUNS_DIR.iterdir():
+        if not entry.is_dir():
+            continue
+        m = _RUN_DIR_RE.match(entry.name)
+        if m:
+            max_seq = max(max_seq, int(m.group(1)))
+    return max_seq + 1
+
+
+def new_run_id() -> str:
+    return f"{_next_run_seq():0{RUN_SEQ_WIDTH}d}_{secrets.token_hex(4)}"
+
+
+def run_dir_name(run_id: str) -> str:
+    """Resolve canonical run folder name (NNN_<suffix> or legacy bare id)."""
+    if (RUNS_DIR / run_id).is_dir():
+        return run_id
+    m = _RUN_DIR_RE.match(run_id)
+    suffix = m.group(2) if m else run_id
+    matches = [p for p in RUNS_DIR.glob(f"*_{suffix}") if p.is_dir()]
+    if len(matches) == 1:
+        return matches[0].name
+    if len(matches) > 1:
+        names = ", ".join(p.name for p in matches)
+        raise ValueError(f"ambiguous run_id {run_id!r}: {names}")
+    if m:
+        return run_id
+    return run_id
+
+
 def run_dir(run_id: str) -> Path:
-    path = RUNS_DIR / run_id
+    path = RUNS_DIR / run_dir_name(run_id)
     path.mkdir(parents=True, exist_ok=True)
     return path
 
@@ -54,13 +92,13 @@ def read_last_run() -> dict | None:
 
 def resolve_run_id(run_id: str | None) -> str:
     if run_id:
-        return run_id
+        return run_dir_name(run_id)
     last = read_last_run()
     if not last or not last.get("run_id"):
         raise ValueError(
             "no run_id and no last run; launch a session first or pass run_id"
         )
-    return str(last["run_id"])
+    return run_dir_name(str(last["run_id"]))
 
 
 def merge_meta(run_id: str, patch: dict) -> None:

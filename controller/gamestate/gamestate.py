@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import secrets
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import StrEnum, auto
@@ -12,12 +11,8 @@ from threading import Condition, Thread
 from time import monotonic, sleep
 from typing import Any, TextIO
 
-from paths import events_path, meta_path, run_dir, write_last_run
+from paths import events_path, meta_path, new_run_id, run_dir, write_last_run
 from pipe import PipeServer
-
-
-def new_run_id() -> str:
-    return secrets.token_hex(4)
 
 
 def _utc_now() -> str:
