@@ -44,7 +44,7 @@ def rpc(command: Command, *, timeout: float = 30.0) -> dict:
     settings = Settings()
     try:
         client = PipeClient(settings.ctl_pipe_name, timeout=int(timeout))
-    except TimeoutError as e:
+    except (TimeoutError, FileNotFoundError) as e:
         raise DaemonNotRunningError(DAEMON_HINT) from e
 
     try:

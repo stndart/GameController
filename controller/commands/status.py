@@ -25,7 +25,7 @@ class StatusCommand(Command):
         return dumps(
             {
                 "run_id": state.run_id,
-                "game_status": state.status.value,
+                "game_status": state.progress.phase.value,
                 "game_pid": state.game_pid,
                 "current_stage": state.current_stage,
                 "game_states": list(state.progress.game_states),

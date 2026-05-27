@@ -8,6 +8,7 @@ import win32pipe
 import win32security
 from win32.lib.winerror import (
     ERROR_BROKEN_PIPE,
+    ERROR_FILE_NOT_FOUND,
     ERROR_NO_DATA,
     ERROR_PIPE_BUSY,
     ERROR_PIPE_LISTENING,
@@ -54,9 +55,10 @@ class PipeMixin:
     def read(self) -> str:
         return self.read_bytes().decode("utf-8")
 
-    def write(self, data: bytes | str):
+    def write(self, data: bytes | str, separator: bytes = b"\n"):
         if isinstance(data, str):
             data = data.encode("utf-8")
+        data = data.removesuffix(separator) + separator
         win32file.WriteFile(self.pipe.handle, data)
 
     def read_message(self, timeout: float = 1, separator: bytes = b"\n") -> str:
@@ -79,9 +81,9 @@ class PipeMixin:
                 raise e
         raise TimeoutError("Timeout reading from pipe")
 
-    def write_message(self, data: bytes | str) -> bool:
+    def write_message(self, data: bytes | str, separator: bytes = b"\n") -> bool:
         try:
-            self.write(data)
+            self.write(data, separator)
         except win32pipe.error as e:
             if e.winerror == ERROR_BROKEN_PIPE:
                 return False
@@ -137,7 +139,7 @@ class PipeServer(PipeMixin):
 
 
 class PipeClient(PipeMixin):
-    _closed: bool = False
+    _closed: bool = True
 
     def __init__(self, name: str, timeout: int = 1):
         ts = time()
@@ -163,15 +165,15 @@ class PipeClient(PipeMixin):
                     None,
                     None,
                 )
-                break
+                self._closed = False
+                return
             except win32file.error as e:
                 if e.winerror == ERROR_PIPE_BUSY:
                     continue
+                elif e.winerror == ERROR_FILE_NOT_FOUND:
+                    raise FileNotFoundError(f"Pipe {name} not found") from e
                 raise e
-        else:
-            raise TimeoutError(
-                f"Failed to connect to pipe {name} after {timeout} seconds"
-            )
+        raise TimeoutError(f"Failed to connect to pipe {name} after {timeout} seconds")
 
     def __del__(self):
         self.close()
