@@ -38,7 +38,6 @@ class Ctl:
                 sleep(0.1)
                 if self.ctl_pipe.accept():
                     command = self.ctl_pipe.read_message()
-                    print(f"Received command: {command}")
                     self.ctl_pipe.write_message(self.execute_command(command))
                     self.ctl_pipe.disconnect()
             except KeyboardInterrupt:
@@ -51,6 +50,7 @@ class Ctl:
 
     def execute_command(self, command: str) -> str:
         command_data = command_adapter.validate_json(command)
+        print(f"Received command: {command_data.command}")
         if isinstance(command_data, StopCommand):
             self._running = False
             return json.dumps({"status": "ok"})
