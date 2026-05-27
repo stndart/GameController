@@ -9,7 +9,7 @@ from time import sleep
 from commands import StopCommand, command_adapter
 from config import Settings
 from gamestate import GameState
-from pipe import PipeServer
+from pipe import PipeDisconnectedError, PipeServer
 
 
 class Ctl:
@@ -36,15 +36,29 @@ class Ctl:
         while self._running:
             try:
                 sleep(0.1)
-                if self.ctl_pipe.accept():
-                    command = self.ctl_pipe.read_message()
+                if not self.ctl_pipe.accept():
+                    continue
+                try:
+                    command = self.ctl_pipe.read_message(timeout=30.0)
+                except (TimeoutError, PipeDisconnectedError) as e:
+                    print(f"[daemon] control read failed: {e}")
+                    self.ctl_pipe.force_disconnect()
+                    continue
+                try:
                     self.ctl_pipe.write_message(self.execute_command(command))
-                    self.ctl_pipe.disconnect()
+                except PipeDisconnectedError as e:
+                    print(f"[daemon] control write failed: {e}")
+                finally:
+                    try:
+                        self.ctl_pipe.disconnect()
+                    except Exception:
+                        self.ctl_pipe.force_disconnect()
             except KeyboardInterrupt:
                 print("Keyboard interrupt received")
                 break
-            except Exception:
-                raise
+            except Exception as e:
+                print(f"[daemon] unexpected error: {e}")
+                self.ctl_pipe.force_disconnect()
 
         print("Daemon stopped")
 

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import subprocess
 import sys
 from pathlib import Path
@@ -42,15 +43,17 @@ class DaemonNotRunningError(RuntimeError):
 def rpc(command: Command, *, timeout: float = 30.0) -> dict:
     """Send one command to the daemon and return the parsed response body."""
     settings = Settings()
+    connect_timeout = max(1, math.ceil(timeout))
     try:
-        client = PipeClient(settings.ctl_pipe_name, timeout=int(timeout))
+        client = PipeClient(settings.ctl_pipe_name, timeout=connect_timeout)
     except (TimeoutError, FileNotFoundError) as e:
         raise DaemonNotRunningError(DAEMON_HINT) from e
 
     try:
         if not client.write_message(command.model_dump_json()):
             raise DaemonNotRunningError("Failed to invoke rpc.")
-        raw = client.read_message()
+        # Must match daemon work duration (e.g. wait-for-stage, launch pid wait).
+        raw = client.read_message(timeout=timeout)
     finally:
         client.close()
 
@@ -216,7 +219,8 @@ def main(argv: list[str] | None = None) -> int:
                 server_ip=args.server_ip,
                 offline=args.offline,
             )
-            result = rpc(cmd, timeout=60.0)
+            # state.start() may block up to 120s waiting for game pid from diagnostics.
+            result = rpc(cmd, timeout=130.0)
             print(json.dumps(result, indent=2))
             return 0
 
