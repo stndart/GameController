@@ -22,8 +22,10 @@ EVENTS_FILE = "events.jsonl"
 META_FILE = "meta.json"
 GAME_LOGS_FILE = "game_logs.txt"
 GAME_NETLOGS_FILE = "game_netlogs.txt"
+GAME_PROUDNET_TCP_FILE = "game_proudnet_tcp.txt"
 SHIPPING_LOGS_FILE = "logs.txt"
 SHIPPING_NETLOGS_FILE = "netlogs.txt"
+SHIPPING_PROUDNET_TCP_FILE = "proudnet_tcp.txt"
 
 
 def ensure_logs_dirs() -> None:

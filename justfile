@@ -2,9 +2,10 @@
 #
 # One-time elevated daemon:
 #   just daemon-bg
-# Then (non-elevated):
-#   just ping
-#   just run-session
+# From repo root (parent justfile has `mod ctl`):
+#   just ctl::ping
+#   just ctl::run-session-offline
+# (`just ping` at root is an alias to ctl::ping)
 
 set windows-shell := ["powershell.exe", "-NoLogo", "-Command"]
 
@@ -76,6 +77,6 @@ run-session dll_config="debug":
 run-session-offline dll_config="debug" server_ip="127.0.0.1":
     {{ctl}} copy-dll --dll-config {{dll_config}} -p "{{game_exe}}"
     {{ctl}} launch -p "{{game_exe}}" -s "{{server_ip}}" --offline
-    {{ctl}} wait-for-stage connecting_to_server --timeout 180
+    {{ctl}} wait-for-stage main_menu --timeout 180
     {{ctl}} kill --all
     {{ctl}} copy-logs -p "{{game_exe}}"

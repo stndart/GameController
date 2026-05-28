@@ -3,16 +3,15 @@
 ## Setup commands
 - `uv sync`
 
-## Usage
-- `just` for list of commands
-- `just <command> <args>` for commands
+## Usage (from game repo root)
 
-When used as a submodule, prefer this style (make sure parent "justfile" includes "mod controller").
+- `just --list` - all recipes; controller client commands are under **`ctl::`**
+- **`just ctl::<command>`** - e.g. `just ctl::ping`, `just ctl::copy-dll`, `just ctl::launch-offline`, `just ctl::wait-stage shard_choice`, `just ctl::kill-all`
+- `just ping` at repo root is an **alias** for `just ctl::ping` only; do **not** assume `just copy-dll` / `just kill-all` exist at root.
 
-- `just ctl` for list of commands
-- `just ctl <command> <args>` for commands
+When this tree is a submodule, parent `justfile` should `mod ctl` the same way.
 
-### Supported commands
+### Supported commands (invoke as `just ctl::<name>`)
 
 - `ping` - daemon status
 - `processes` - list of running GAME.exe / GameLauncher.exe
@@ -21,8 +20,11 @@ When used as a submodule, prefer this style (make sure parent "justfile" include
 - `kill` - kills the running GAME.exe instance.
 - `kill-all` - kills all running GAME.exe / GameLauncher.exe processes
 - `copy-dll [dll_config=]` - copies fresh dll to the game directory. dll_config=debug/release (debug by default)
-- `copy-logs` - copies logs from game directory to "logs/runs/`<run_id>`/"
+- `copy-logs` - copies `logs.txt`, `netlogs.txt`, and `proudnet_tcp.txt` from the game directory to `logs/runs/<run_id>/` (`game_logs.txt`, `game_netlogs.txt`, `game_proudnet_tcp.txt`)
 - `copy-logs-run <run_id>` - copies logs from game directory with specified run_id.
+- `copy-proudnet-tcp` - copies only `proudnet_tcp.txt` next to GAME.exe into the current run dir
+- `copy-proudnet-tcp-run <run_id>` - same with an explicit run id
+- `clear-proudnet-tcp` - deletes `proudnet_tcp.txt` next to GAME.exe (also cleared on `launch` / `launch-offline` with the other shipping logs)
 - `launch [server_ip=]` - exchanges the credentials for token and starts the game. `<server_ip>` is overriden if not empty. The game logs are cleared before start.
 - `launch-offline [server_ip=]` - starts the game without fetching the credentials (auth disabled).
 - `wait-menu` - blocks until game stage "main_menu"

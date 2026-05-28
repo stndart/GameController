@@ -15,8 +15,10 @@ import sys
 from pathlib import Path
 
 from commands import (
+    ClearProudnetTcpCommand,
     CopyDllCommand,
     CopyLogsCommand,
+    CopyProudnetTcpCommand,
     KillCommand,
     LaunchCommand,
     ListStagesCommand,
@@ -153,10 +155,23 @@ def build_parser() -> argparse.ArgumentParser:
 
     copy_logs_p = sub.add_parser(
         "copy-logs",
-        help="Copy shipping logs.txt/netlogs.txt into run dir.",
+        help="Copy shipping logs.txt, netlogs.txt, proudnet_tcp.txt into run dir.",
     )
     copy_logs_p.add_argument("--run-id", default=None)
     copy_logs_p.add_argument("-p", "--game-exe", type=Path, default=None)
+
+    copy_pn_tcp_p = sub.add_parser(
+        "copy-proudnet-tcp",
+        help="Copy proudnet_tcp.txt next to GAME.exe into run dir.",
+    )
+    copy_pn_tcp_p.add_argument("--run-id", default=None)
+    copy_pn_tcp_p.add_argument("-p", "--game-exe", type=Path, default=None)
+
+    clear_pn_tcp_p = sub.add_parser(
+        "clear-proudnet-tcp",
+        help="Delete proudnet_tcp.txt next to GAME.exe.",
+    )
+    clear_pn_tcp_p.add_argument("-p", "--game-exe", type=Path, default=None)
 
     return parser
 
@@ -246,6 +261,23 @@ def main(argv: list[str] | None = None) -> int:
                 run_id=args.run_id,
                 game_exe=str(game.resolve()),
             )
+            result = rpc(cmd)
+            print(json.dumps(result, indent=2))
+            return 0
+
+        if args.command == "copy-proudnet-tcp":
+            game = args.game_exe or _default_game_exe()
+            cmd = CopyProudnetTcpCommand(
+                run_id=args.run_id,
+                game_exe=str(game.resolve()),
+            )
+            result = rpc(cmd)
+            print(json.dumps(result, indent=2))
+            return 0
+
+        if args.command == "clear-proudnet-tcp":
+            game = args.game_exe or _default_game_exe()
+            cmd = ClearProudnetTcpCommand(game_exe=str(game.resolve()))
             result = rpc(cmd)
             print(json.dumps(result, indent=2))
             return 0
