@@ -27,6 +27,10 @@ class SessionPhase(StrEnum):
     ended = auto()
 
 
+# Session steps that abort wait-for-stage (not game_state phases).
+TERMINAL_STAGES: frozenset[str] = frozenset({"diag_disconnected"})
+
+
 @dataclass
 class Progress:
     phase: SessionPhase = SessionPhase.idle
@@ -140,14 +144,29 @@ class GameState:
             print(f"[stage] {phase} run_id={self.run_id}")
             self._stage_cond.notify_all()
 
+    def _terminal_stage(self) -> str | None:
+        if self.progress.phase == SessionPhase.diag_disconnected:
+            return "diag_disconnected"
+        for step in reversed(self.progress.steps):
+            name = step.get("name")
+            if name in TERMINAL_STAGES:
+                return name
+        return None
+
     def wait_for_stage(self, stage: str, timeout: float) -> bool:
         with self._stage_cond:
+            terminal = self._terminal_stage()
+            if terminal is not None:
+                raise TerminalStageError(terminal)
             if stage in self.progress.game_states:
                 return True
             if timeout <= 0:
                 return False
             deadline = monotonic() + timeout
             while stage not in self.progress.game_states:
+                terminal = self._terminal_stage()
+                if terminal is not None:
+                    raise TerminalStageError(terminal)
                 remaining = deadline - monotonic()
                 if remaining <= 0:
                     return False
@@ -197,7 +216,8 @@ class GameState:
 
         with self._stage_cond:
             self.progress.phase = SessionPhase.diag_disconnected
-        self.record_step("diag_disconnected")
+            self.record_step("diag_disconnected")
+            self._stage_cond.notify_all()
         print(f"[stage] diag_disconnected run_id={self.run_id}")
 
     def end_session(self) -> None:
@@ -243,3 +263,9 @@ class GameState:
 
 class CommandError(Exception):
     pass
+
+
+class TerminalStageError(CommandError):
+    def __init__(self, stage: str) -> None:
+        self.stage = stage
+        super().__init__(f"session reached terminal stage: {stage}")

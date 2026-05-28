@@ -1,3 +1,3 @@
-from .gamestate import CommandError, GameState
+from .gamestate import CommandError, GameState, TerminalStageError
 
-__all__ = ["GameState", "CommandError"]
+__all__ = ["GameState", "CommandError", "TerminalStageError"]
