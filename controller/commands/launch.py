@@ -7,7 +7,7 @@ from json import dumps
 from pathlib import Path
 from typing import Any, Literal
 
-from config import Settings
+from config import Settings, fresh_settings
 from gamestate import CommandError, GameState
 from launch_game import (
     Settings as LaunchSettings,
@@ -70,13 +70,13 @@ class LaunchCommand(Command):
             clear_shipping_game_logs(game_exe)
             write_config(launch_settings, game_exe, launch_token, server_ip)
             write_server_override(game_exe, server_ip)
+            runtime = fresh_settings()
             nav_mode = (
                 (self.nav_auto or "").strip()
-                or settings.thegame_nav_auto.strip()
-                or settings.game_child_env().get("THEGAME_NAV_AUTO", "")
+                or runtime.thegame_nav_auto.strip()
             ).strip()
             write_nav_auto(game_exe, nav_mode)
-            child_env = settings.game_child_env()
+            child_env = runtime.game_child_env()
             if nav_mode:
                 child_env["THEGAME_NAV_AUTO"] = nav_mode
             proc = spawn_game_launcher(

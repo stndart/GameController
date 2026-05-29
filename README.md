@@ -13,10 +13,10 @@ Config files (optional):
 
 | File      | Purpose                                                 |
 | --------- | ------------------------------------------------------- |
-| `ctl.env` | Pipe names, DLL build paths, optional `thegame_nav_auto` (`Settings` in `config.py`) |
+| `ctl.env` | Pipe names, DLL paths, optional `thegame_nav_auto` / `thegame_nav_action` (`config.py` → `game_child_env`) |
 | `.env`    | Game path, API, account token (`launch_game.Settings`)  |
 
-**Autonomous navigation:** `just ctl::launch-offline-nav` (writes `TheGame.nav_auto`, passes `--nav-auto create_room`). See [docs/rmi/autonav.md](../docs/rmi/autonav.md). Optional: `thegame_nav_auto=create_room` in `ctl.env`.
+**Autonomous navigation:** `just ctl::launch-offline-nav` (`create_room`), `just ctl::launch-offline-exit-nav` (`exit_lobby`), `just ctl::run-exit-lobby-test`, `just ctl::run-nav-matrix` (all nav actions). See [docs/rmi/autonav.md](../docs/rmi/autonav.md). `ctl/ctl.env` is **re-read on every launch** (no daemon restart for nav keys); restart daemon only after ctl Python changes.
 
 
 **One-time elevated daemon** (UAC / gsudo):
