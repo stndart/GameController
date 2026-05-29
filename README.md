@@ -32,7 +32,7 @@ Daemon prints `[stage] …` lines when the game reports new `game_state` phases.
 ```powershell
 just copy-dll
 just launch # or `just launch-offline`
-just wait-menu          # ctl wait-for-stage main_menu --timeout 120
+just wait-menu          # ctl wait-for-stage server_ready --timeout 120
 just kill
 just copy-logs
 ```
@@ -67,12 +67,20 @@ Known phases (see `stages.py`, keep in sync with `src/hooks/game_state.cpp`):
 | `login`                | CGameLogin onPreProcess    |
 | `connecting_to_server` | TCPSocket::Connect :7000   |
 | `shard_choice`         | Shard selection UI         |
-| `main_menu`            | Main menu                  |
+| `server_ready`         | Server/shard picker finished (`CGameServer` onEnter done) |
+| `lobby`                | Main menu (chat, Quick/Custom match) |
+| `room_list`            | Custom match room list     |
+| `party_room`           | Party / matchmaking room   |
+| `room`                 | Waiting room               |
+| `char_select`          | Character select           |
+| `map_loading`          | Map load                   |
+| `in_game`              | In match                   |
 
 
 ```powershell
-ctl stages                    # catalog + stages seen this session
-ctl wait-for-stage main_menu  # blocks this RPC until stage or timeout
+ctl stages                       # catalog + stages seen this session
+ctl wait-for-stage server_ready  # blocks this RPC until stage or timeout
+just wait-menu                   # same as above (recipe alias)
 ```
 
 `wait-for-stage` only blocks the **client connection** handling that request; other commands can be issued from another terminal if needed (the daemon serves one RPC at a time per connection).

@@ -2,14 +2,21 @@
 
 from __future__ import annotations
 
-# Order matches typical boot flow.
+# Order matches typical boot / navigation flow (src/hooks/game_state.cpp).
 KNOWN_STAGES: tuple[str, ...] = (
     "started",
     "intro",
     "login",
     "connecting_to_server",
     "shard_choice",
-    "main_menu",
+    "server_ready",
+    "lobby",
+    "room_list",
+    "party_room",
+    "room",
+    "char_select",
+    "map_loading",
+    "in_game",
 )
 
 

@@ -2,7 +2,7 @@
 Non-elevated CLI for the thegame-ctl daemon.
 
 Start the daemon once (elevated):  ctl -d
-Then:  ctl ping | launch | wait-for-stage main_menu | kill --all | copy-logs
+Then:  ctl ping | launch | wait-for-stage server_ready | kill --all | copy-logs
 """
 
 from __future__ import annotations
@@ -115,7 +115,7 @@ def build_parser() -> argparse.ArgumentParser:
         "wait-for-stage",
         help="Block until game reaches a diagnostics stage (or timeout).",
     )
-    wait_p.add_argument("stage", help="game_state phase name, e.g. main_menu")
+    wait_p.add_argument("stage", help="game_state phase name, e.g. server_ready")
     wait_p.add_argument(
         "--timeout",
         type=float,

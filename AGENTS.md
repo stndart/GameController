@@ -27,9 +27,9 @@ When this tree is a submodule, parent `justfile` should `mod ctl` the same way.
 - `clear-proudnet-tcp` - deletes `proudnet_tcp.txt` next to GAME.exe (also cleared on `launch` / `launch-offline` with the other shipping logs)
 - `launch [server_ip=]` - exchanges the credentials for token and starts the game. `<server_ip>` is overriden if not empty. The game logs are cleared before start.
 - `launch-offline [server_ip=]` - starts the game without fetching the credentials (auth disabled).
-- `wait-menu` - blocks until game stage "main_menu"
+- `wait-menu` - blocks until game stage `server_ready` (shard picker done; alias for `wait-stage server_ready`)
 - `wait-stage <stage> [timeout=]` - blocks until specific game stage. timeout=120 by default.
-- `run-session [dll_config=]` - chains `copy-dll`, `launch`, `wait-menu`, `kill-all` and `copy-logs`. dll_config=debug by default.
+- `run-session [dll_config=]` - chains `copy-dll`, `launch`, `wait-menu` (`server_ready`), `kill-all` and `copy-logs`. dll_config=debug by default.
 - `run-session-offline [dllconfig=] [server_ip=]` - the same chain except `launch` is replaced with `launch-offline [server_ip]`. server_ip=127.0.0.1 by default.
 
 ### Commands not working at the moment

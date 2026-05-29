@@ -62,7 +62,7 @@ launch-offline server_ip="127.0.0.1":
     {{ctl}} launch -p "{{game_exe}}" -s "{{server_ip}}" --offline
 
 wait-menu:
-    {{ctl}} wait-for-stage main_menu --timeout 120
+    {{ctl}} wait-for-stage server_ready --timeout 120
 
 wait-stage stage timeout="120":
     {{ctl}} wait-for-stage {{stage}} --timeout {{timeout}}
@@ -70,13 +70,13 @@ wait-stage stage timeout="120":
 run-session dll_config="debug":
     {{ctl}} copy-dll --dll-config {{dll_config}} -p "{{game_exe}}"
     {{ctl}} launch -p "{{game_exe}}"
-    {{ctl}} wait-for-stage main_menu --timeout 120
+    {{ctl}} wait-for-stage server_ready --timeout 120
     {{ctl}} kill --all
     {{ctl}} copy-logs -p "{{game_exe}}"
 
 run-session-offline dll_config="debug" server_ip="127.0.0.1":
     {{ctl}} copy-dll --dll-config {{dll_config}} -p "{{game_exe}}"
     {{ctl}} launch -p "{{game_exe}}" -s "{{server_ip}}" --offline
-    {{ctl}} wait-for-stage main_menu --timeout 180
+    {{ctl}} wait-for-stage server_ready --timeout 180
     {{ctl}} kill --all
     {{ctl}} copy-logs -p "{{game_exe}}"
