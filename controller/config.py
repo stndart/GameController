@@ -17,10 +17,18 @@ class Settings(BaseSettings):
     dll_release_path: Path = (
         REPO_ROOT.parent / "build" / "msvc-x86-release" / "bin" / "TheGame.dll"
     )
+    dll_debug_wire_path: Path = (
+        REPO_ROOT.parent
+        / "build"
+        / "msvc-x86-debug-wire"
+        / "bin"
+        / "TheGame.dll"
+    )
 
     @property
     def dll_configs(self) -> dict[str, Path]:
         return {
             "debug": self.dll_debug_path,
+            "debug-wire": self.dll_debug_wire_path,
             "release": self.dll_release_path,
         }

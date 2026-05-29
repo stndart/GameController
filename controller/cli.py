@@ -147,7 +147,7 @@ def build_parser() -> argparse.ArgumentParser:
     copy_dll_p = sub.add_parser("copy-dll", help="Copy TheGame.dll next to GAME.exe.")
     copy_dll_p.add_argument(
         "--dll-config",
-        choices=["debug", "release"],
+        choices=["debug", "debug-wire", "release"],
         default="debug",
     )
     copy_dll_p.add_argument("--dll-source", type=Path, default=None)

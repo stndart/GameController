@@ -9,7 +9,7 @@ from launch_game import Settings as LaunchSettings
 
 from .common import Command
 
-DllConfig = Literal["debug", "release"]
+DllConfig = Literal["debug", "debug-wire", "release"]
 
 
 class CopyDllCommandError(CommandError):
