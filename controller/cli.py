@@ -136,6 +136,12 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Use localhost token (no API).",
     )
+    launch_p.add_argument(
+        "--nav-auto",
+        default=None,
+        metavar="MODE",
+        help="THEGAME_NAV_AUTO for GAME.exe (e.g. create_room).",
+    )
 
     kill_p = sub.add_parser("kill", help="Force-kill game processes.")
     kill_p.add_argument(
@@ -229,10 +235,18 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.command == "launch":
             game = args.game_exe or _default_game_exe()
+            import os
+
+            from launch_game import write_nav_auto
+
+            nav_auto = args.nav_auto or os.environ.get("THEGAME_NAV_AUTO")
+            # Client-side sidecar: daemon may run stale code without nav_auto in RPC.
+            write_nav_auto(game.resolve(), (nav_auto or "").strip())
             cmd = LaunchCommand(
                 game_exe=str(game.resolve()),
                 server_ip=args.server_ip,
                 offline=args.offline,
+                nav_auto=nav_auto,
             )
             # state.start() may block up to 120s waiting for game pid from diagnostics.
             result = rpc(cmd, timeout=130.0)

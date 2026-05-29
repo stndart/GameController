@@ -61,6 +61,10 @@ launch server_ip="":
 launch-offline server_ip="127.0.0.1":
     {{ctl}} launch -p "{{game_exe}}" -s "{{server_ip}}" --offline
 
+# Offline launch with autonav (writes TheGame.nav_auto; passes --nav-auto to daemon).
+launch-offline-nav server_ip="127.0.0.1":
+    {{ctl}} launch -p "{{game_exe}}" -s "{{server_ip}}" --offline --nav-auto create_room
+
 wait-menu:
     {{ctl}} wait-for-stage server_ready --timeout 120
 

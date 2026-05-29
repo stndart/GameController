@@ -13,8 +13,10 @@ Config files (optional):
 
 | File      | Purpose                                                 |
 | --------- | ------------------------------------------------------- |
-| `ctl.env` | Pipe names, DLL build paths (`Settings` in `config.py`) |
+| `ctl.env` | Pipe names, DLL build paths, optional `thegame_nav_auto` (`Settings` in `config.py`) |
 | `.env`    | Game path, API, account token (`launch_game.Settings`)  |
+
+**Autonomous navigation:** `just ctl::launch-offline-nav` (writes `TheGame.nav_auto`, passes `--nav-auto create_room`). See [docs/rmi/autonav.md](../docs/rmi/autonav.md). Optional: `thegame_nav_auto=create_room` in `ctl.env`.
 
 
 **One-time elevated daemon** (UAC / gsudo):

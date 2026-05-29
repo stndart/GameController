@@ -137,6 +137,21 @@ def write_server_override(game_path: Path, server_ip: str) -> None:
     server_override_path(game_path).write_text(server_ip + "\n", encoding="ascii")
 
 
+def nav_auto_path(game_path: Path) -> Path:
+    """Sidecar read by TheGame.dll when GameLauncher does not pass env to GAME.exe."""
+    return game_path.parent / "TheGame.nav_auto"
+
+
+def write_nav_auto(game_path: Path, mode: str) -> None:
+    path = nav_auto_path(game_path)
+    mode = (mode or "").strip()
+    if not mode:
+        if path.is_file():
+            path.unlink()
+        return
+    path.write_text(mode + "\n", encoding="ascii")
+
+
 def write_config(
     settings: Settings, game_path: Path, launch_token: str, server_ip: str
 ) -> None:
@@ -156,7 +171,11 @@ def write_config(
 
 
 def spawn_game_launcher(
-    settings: Settings, launch_token: str, kernel_check_disable: bool
+    settings: Settings,
+    launch_token: str,
+    kernel_check_disable: bool,
+    *,
+    extra_env: dict[str, str] | None = None,
 ) -> subprocess.Popen:
     args = [str(settings.get_game_launcher_exe()), launch_token]
     if kernel_check_disable:
@@ -166,10 +185,18 @@ def spawn_game_launcher(
     if sys.platform == "win32":
         creationflags = subprocess.DETACHED_PROCESS | subprocess.CREATE_NO_WINDOW
 
+    env = None
+    if extra_env:
+        import os
+
+        env = os.environ.copy()
+        env.update(extra_env)
+
     return subprocess.Popen(
         args,
         cwd=str(settings.LAUNCHER_ROOT),
         creationflags=creationflags,
+        env=env,
     )
 
 

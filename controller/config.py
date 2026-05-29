@@ -25,6 +25,18 @@ class Settings(BaseSettings):
         / "TheGame.dll"
     )
 
+    # Copied into GAME.exe process env at launch (GameLauncher child inherits).
+    thegame_nav_auto: str = ""
+
+    def game_child_env(self) -> dict[str, str]:
+        import os
+
+        env = dict(os.environ)
+        nav = (self.thegame_nav_auto or os.environ.get("THEGAME_NAV_AUTO", "")).strip()
+        if nav:
+            env["THEGAME_NAV_AUTO"] = nav
+        return env
+
     @property
     def dll_configs(self) -> dict[str, Path]:
         return {
