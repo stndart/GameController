@@ -59,7 +59,7 @@ copy-logs-run run_id:
     {{ctl}} copy-logs --run-id {{run_id}} -p "{{game_exe}}"
 
 launch server_ip="":
-    {{ctl}} launch -p "{{game_exe}}" -s "{{server_ip}}"
+    {{ctl}} launch -p "{{game_exe}}"{{ if server_ip != '' { ' -s ' + server_ip } else { '' } }}
 
 launch-offline server_ip="127.0.0.1":
     {{ctl}} launch -p "{{game_exe}}" -s "{{server_ip}}" --offline
