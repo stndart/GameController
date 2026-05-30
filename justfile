@@ -46,8 +46,19 @@ kill:
 kill-all:
     {{ctl}} kill --all
 
+# debug | release only; other presets → copy-dll-any <build_dir>
 copy-dll dll_config="debug":
     {{ctl}} copy-dll --dll-config {{dll_config}} -p "{{game_exe}}"
+
+copy-dll-debug:
+    {{ctl}} copy-dll --dll-config debug -p "{{game_exe}}"
+
+copy-dll-release:
+    {{ctl}} copy-dll --dll-config release -p "{{game_exe}}"
+
+# e.g. just ctl::copy-dll-any msvc-x86-debug-nohooks  →  ../build/msvc-x86-debug-nohooks/bin/TheGame.dll
+copy-dll-any build_dir:
+    {{ctl}} copy-dll --dll-source "../build/{{build_dir}}/bin/TheGame.dll" -p "{{game_exe}}"
 
 clear-logs:
     {{ctl}} clear-logs -p "{{game_exe}}"

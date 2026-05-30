@@ -24,7 +24,8 @@ When this tree is a submodule, parent `justfile` should `mod ctl` the same way.
 - `stages` - known stages + seen stages for current session
 - `kill` - kills the running GAME.exe instance.
 - `kill-all` - kills all running GAME.exe / GameLauncher.exe processes
-- `copy-dll [dll_config=]` - copies fresh dll to the game directory. dll_config=debug/release (debug by default)
+- `copy-dll [dll_config=]` / `copy-dll-debug` / `copy-dll-release` - built-in configs only (debug default)
+- `copy-dll-any <build_dir>` - any preset under `build/<build_dir>/bin/TheGame.dll` (e.g. `msvc-x86-debug-nohooks`); no justfile edits for new CMake presets
 - `clear-logs` - deletes shipping log files next to GAME.exe (per `game_log_files` in ctl.yaml)
 - `copy-logs` - copies shipping logs into `logs/runs/<run_id>/` (names from `game_log_files`)
 - `copy-logs-run <run_id>` - copies logs from game directory with specified run_id.

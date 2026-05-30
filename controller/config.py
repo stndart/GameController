@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 
 import yaml
 from pydantic_settings import (
@@ -28,6 +28,23 @@ class Settings(BaseSettings):
     dll_debug_path: Path = (
         REPO_ROOT.parent / "build" / "msvc-x86-debug" / "bin" / "TheGame.dll"
     )
+    dll_debug_nohooks_path: Path = (
+        REPO_ROOT.parent
+        / "build"
+        / "msvc-x86-debug-nohooks"
+        / "bin"
+        / "TheGame.dll"
+    )
+    dll_debug_diag_path: Path = (
+        REPO_ROOT.parent / "build" / "msvc-x86-debug-diag" / "bin" / "TheGame.dll"
+    )
+    dll_debug_diag_net_path: Path = (
+        REPO_ROOT.parent
+        / "build"
+        / "msvc-x86-debug-diag-net"
+        / "bin"
+        / "TheGame.dll"
+    )
     dll_release_path: Path = (
         REPO_ROOT.parent / "build" / "msvc-x86-release" / "bin" / "TheGame.dll"
     )
@@ -56,6 +73,9 @@ class Settings(BaseSettings):
     def dll_configs(self) -> dict[str, Path]:
         return {
             "debug": self.dll_debug_path,
+            "debug-nohooks": self.dll_debug_nohooks_path,
+            "debug-diag": self.dll_debug_diag_path,
+            "debug-diag-net": self.dll_debug_diag_net_path,
             "release": self.dll_release_path,
         }
 

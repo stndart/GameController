@@ -1,4 +1,4 @@
-"""
+﻿"""
 Non-elevated CLI for the thegame-ctl daemon.
 
 Start the daemon once (elevated):  ctl -d
@@ -168,7 +168,14 @@ def build_parser() -> argparse.ArgumentParser:
     copy_dll_p = sub.add_parser("copy-dll", help="Copy TheGame.dll next to GAME.exe.")
     copy_dll_p.add_argument(
         "--dll-config",
-        choices=["debug", "debug-wire", "release"],
+        choices=[
+            "debug",
+            "debug-nohooks",
+            "debug-diag",
+            "debug-diag-net",
+            "debug-wire",
+            "release",
+        ],
         default="debug",
     )
     copy_dll_p.add_argument("--dll-source", type=Path, default=None)
@@ -341,3 +348,4 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
