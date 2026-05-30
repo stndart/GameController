@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     ctl_pipe_name: str = "thegame-ctl"
     diagnostics_pipe_name: str = "thegame-diagnostics"
     handler_pipe_name: str = "thegame-handler"
+    handler_response_timeout: float = 30.0
 
     dll_debug_path: Path = (
         REPO_ROOT.parent / "build" / "msvc-x86-debug" / "bin" / "TheGame.dll"

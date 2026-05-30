@@ -3,7 +3,12 @@ from typing import Literal
 
 from config import Settings
 from gamestate import GameState
-from handler import HandlerDisconnectedError, HandlerNotConnectedError
+from handler import (
+    HandlerDisconnectedError,
+    HandlerNotConnectedError,
+    HandlerResponseError,
+    HandlerTimeoutError,
+)
 
 from .common import Command
 
@@ -25,11 +30,16 @@ class SendCommand(Command):
         if handler is None:
             raise SendCommandError("handler pipe not available")
 
+        timeout = settings.handler_response_timeout
         try:
-            handler.send(message)
+            handler.send(message, timeout=timeout)
         except HandlerNotConnectedError as e:
             raise SendCommandError(str(e)) from e
         except HandlerDisconnectedError as e:
+            raise SendCommandError(str(e)) from e
+        except HandlerTimeoutError as e:
+            raise SendCommandError(str(e)) from e
+        except HandlerResponseError as e:
             raise SendCommandError(str(e)) from e
 
         return dumps({"sent": message})

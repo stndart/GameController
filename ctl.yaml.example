@@ -1,6 +1,7 @@
 ctl_pipe_name: thegame-ctl
 diagnostics_pipe_name: thegame-diagnostics
 handler_pipe_name: thegame-handler
+handler_response_timeout: 30.0
 game_log_files:
   - [logs.txt, game_logs.txt]
   - [netlogs.txt, game_netlogs.txt]

@@ -17,6 +17,7 @@ from pathlib import Path
 
 from commands import (
     ClearLogsCommand,
+    CommandsCommand,
     CopyDllCommand,
     CopyLogsCommand,
     KillCommand,
@@ -114,6 +115,11 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("status", help="Session run_id, stages, and progress.")
     sub.add_parser("stages", help="Known stages and stages seen this session.")
     sub.add_parser("stop", help="Stop the daemon.")
+
+    sub.add_parser(
+        "commands",
+        help="List handler commands supported by the connected game.",
+    )
 
     send_p = sub.add_parser(
         "send",
@@ -265,7 +271,16 @@ def _handle_stop(_args: argparse.Namespace) -> int:
 
 
 def _handle_send(args: argparse.Namespace) -> int:
-    _print_result(rpc(SendCommand(message=args.message)))
+    settings = Settings()
+    timeout = settings.handler_response_timeout + 10.0
+    _print_result(rpc(SendCommand(message=args.message), timeout=timeout))
+    return 0
+
+
+def _handle_commands(_args: argparse.Namespace) -> int:
+    settings = Settings()
+    timeout = settings.handler_response_timeout + 10.0
+    _print_result(rpc(CommandsCommand(), timeout=timeout))
     return 0
 
 
@@ -280,6 +295,7 @@ DISPATCH: dict[str, Callable[[argparse.Namespace], int]] = {
     "copy-dll": _handle_copy_dll,
     "clear-logs": _handle_clear_logs,
     "copy-logs": _handle_copy_logs,
+    "commands": _handle_commands,
     "send": _handle_send,
     "stop": _handle_stop,
 }

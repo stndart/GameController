@@ -108,6 +108,7 @@ Exit code `1` if the stage was not reached before `--timeout` (default 120s).
 | `ctl clear-logs`          | Delete shipping logs next to GAME.exe                      |
 | `ctl copy-logs`           | Copy shipping logs into run dir                            |
 | `ctl launch`              | clear-logs, then spawn launcher                            |
+| `ctl commands`            | List handler commands the game supports                    |
 | `ctl send MESSAGE`        | Send a command to the game on the handler pipe             |
 | `ctl stop`                | Shut down daemon                                           |
 
@@ -116,7 +117,13 @@ Credentials are read from `store.json` / `launch.yaml` (`launch_game`).
 
 ### Handler pipe
 
-The game DLL connects to `handler_pipe_name` in `ctl.yaml` (default `thegame-handler`) as a named-pipe client and reads UTF-8 lines (one command per line, `\n`-terminated). The daemon writes commands when you run `ctl send nav-menu` or `just send nav-menu`. Fails with an error if no game client is connected or the peer disconnects during send; the daemon keeps running.
+The game DLL connects to `handler_pipe_name` in `ctl.yaml` (default `thegame-handler`) as a named-pipe **client** on a duplex pipe. Protocol: one UTF-8 line per message, `\n`-terminated.
+
+- Daemon → game: command line (e.g. `nav-menu`, or `commands` to list handlers).
+- Game → daemon: one response line. Success for normal commands is `ok`. For `commands`, a comma-separated list of handler names (e.g. `nav-menu,shard-choice`).
+- `handler_response_timeout` in `ctl.yaml` (default 30s) limits how long the daemon waits for a response.
+
+`ctl send nav-menu` / `just send nav-menu` sends a command and requires `ok`. `ctl commands` / `just commands` sends `commands` and returns the parsed list in the RPC JSON (`handlers`). Fails if no game client is connected, the peer disconnects, the response times out, or `send` gets a non-`ok` line; the daemon keeps running.
 
 ## Troubleshooting
 

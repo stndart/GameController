@@ -1,4 +1,4 @@
-"""Handler named pipe: game client reads line-oriented commands from the daemon."""
+"""Handler named pipe: duplex line-oriented commands and responses."""
 
 from __future__ import annotations
 
@@ -13,11 +13,19 @@ class HandlerNotConnectedError(OSError):
 
 
 class HandlerDisconnectedError(OSError):
-    """Handler pipe peer disconnected during send."""
+    """Handler pipe peer disconnected during request."""
+
+
+class HandlerTimeoutError(TimeoutError):
+    """Timed out waiting for a handler pipe response."""
+
+
+class HandlerResponseError(OSError):
+    """Unexpected response line from the game."""
 
 
 class HandlerPipeSession:
-    """Accepts a game client and forwards newline-terminated commands."""
+    """Accepts a game client and exchanges newline-terminated commands."""
 
     def __init__(self, pipe_name: str) -> None:
         self._pipe_name = pipe_name
@@ -45,7 +53,8 @@ class HandlerPipeSession:
             self._thread.join(timeout=5.0)
         self._thread = None
 
-    def send(self, message: str) -> None:
+    def request(self, message: str, *, timeout: float) -> str:
+        """Send a command and read one line response from the game."""
         with self._lock:
             if not self._connected:
                 raise HandlerNotConnectedError("no game connected on handler pipe")
@@ -54,14 +63,28 @@ class HandlerPipeSession:
                 raise HandlerDisconnectedError(
                     "handler pipe disconnected while sending"
                 )
+            try:
+                response = self._pipe.read_message(timeout=timeout)
+            except TimeoutError as e:
+                raise HandlerTimeoutError(
+                    f"timed out waiting for handler response ({timeout}s)"
+                ) from e
+            except PipeDisconnectedError as e:
+                self._mark_disconnected_locked()
+                raise HandlerDisconnectedError(
+                    "handler pipe disconnected while reading response"
+                ) from e
+            return response.strip()
+
+    def send(self, message: str, *, timeout: float) -> None:
+        """Send a command and require an ``ok`` response."""
+        response = self.request(message, timeout=timeout)
+        if response != "ok":
+            raise HandlerResponseError(f"expected ok, got {response!r}")
 
     def _mark_disconnected_locked(self) -> None:
         self._connected = False
         self._pipe.force_disconnect()
-
-    def _mark_disconnected(self) -> None:
-        with self._lock:
-            self._mark_disconnected_locked()
 
     def _thread_func(self) -> None:
         while self._running:
@@ -77,15 +100,10 @@ class HandlerPipeSession:
                 print(f"[daemon] handler connected pipe={self._pipe_name}")
 
                 while self._running:
-                    try:
-                        self._pipe.read_message(timeout=0.5)
-                    except TimeoutError:
-                        continue
-                    except PipeDisconnectedError:
-                        break
-                    except Exception as e:
-                        print(f"[daemon] handler read error: {e}")
-                        break
+                    with self._lock:
+                        if not self._connected:
+                            break
+                    sleep(0.1)
 
             except Exception as e:
                 print(f"[daemon] handler unexpected error: {e}")
