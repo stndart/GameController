@@ -32,6 +32,7 @@ When this tree is a submodule, parent `justfile` should `mod ctl` the same way.
 - `launch-offline [server_ip=]` - clear-logs, then start the game without fetching credentials (auth disabled).
 - `wait-menu` - blocks until game stage `server_ready` (alias for `wait-stage server_ready`)
 - `wait-stage <stage> [timeout=]` - blocks until specific game stage. timeout=120 by default.
+- `send <message>` - send a line-oriented command to the game on the handler pipe (e.g. `nav-menu`)
 ### Commands available only with human approval
 
 - `stop` - stops the daemon. Daemon can be only started by human, so this action alone is destructive for workflow.

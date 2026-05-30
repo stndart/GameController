@@ -108,10 +108,15 @@ Exit code `1` if the stage was not reached before `--timeout` (default 120s).
 | `ctl clear-logs`          | Delete shipping logs next to GAME.exe                      |
 | `ctl copy-logs`           | Copy shipping logs into run dir                            |
 | `ctl launch`              | clear-logs, then spawn launcher                            |
+| `ctl send MESSAGE`        | Send a command to the game on the handler pipe             |
 | `ctl stop`                | Shut down daemon                                           |
 
 
 Credentials are read from `store.json` / `launch.yaml` (`launch_game`).
+
+### Handler pipe
+
+The game DLL connects to `handler_pipe_name` in `ctl.yaml` (default `thegame-handler`) as a named-pipe client and reads UTF-8 lines (one command per line, `\n`-terminated). The daemon writes commands when you run `ctl send nav-menu` or `just send nav-menu`. Fails with an error if no game client is connected or the peer disconnects during send; the daemon keeps running.
 
 ## Troubleshooting
 

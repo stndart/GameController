@@ -9,6 +9,7 @@ from time import sleep
 from commands import StopCommand, command_adapter
 from config import Settings
 from gamestate import GameState
+from handler import HandlerPipeSession
 from pipe import PipeDisconnectedError, PipeServer
 
 
@@ -21,18 +22,30 @@ class Ctl:
     state: GameState
     _running: bool = False
 
+    handler: HandlerPipeSession
+
     def __init__(self, settings: Settings):
         self.settings = settings
         self.ctl_pipe = PipeServer(settings.ctl_pipe_name)
         self.diag_pipe = PipeServer(settings.diagnostics_pipe_name)
-        self.state = GameState(self.diag_pipe)
+        self.handler = HandlerPipeSession(settings.handler_pipe_name)
+        self.state = GameState(self.diag_pipe, handler=self.handler)
+        self.handler.start()
 
     def run_daemon(self) -> None:
         self._running = True
         print(
-            f"thegame-ctl daemon pid={os.getpid()} pipe={self.settings.ctl_pipe_name}"
+            f"thegame-ctl daemon pid={os.getpid()} "
+            f"pipe={self.settings.ctl_pipe_name} "
+            f"handler_pipe={self.settings.handler_pipe_name}"
         )
         print("Press Ctrl+C to stop the daemon")
+        try:
+            self._run_ctl_loop()
+        finally:
+            self.handler.stop()
+
+    def _run_ctl_loop(self) -> None:
         while self._running:
             try:
                 sleep(0.1)

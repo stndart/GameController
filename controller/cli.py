@@ -24,6 +24,7 @@ from commands import (
     ListStagesCommand,
     PingCommand,
     ProcessesCommand,
+    SendCommand,
     StatusCommand,
     StopCommand,
     WaitForStageCommand,
@@ -114,6 +115,15 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("stages", help="Known stages and stages seen this session.")
     sub.add_parser("stop", help="Stop the daemon.")
 
+    send_p = sub.add_parser(
+        "send",
+        help="Send a line-oriented command to the game via the handler pipe.",
+    )
+    send_p.add_argument(
+        "message",
+        help="Command text, e.g. nav-menu (newline added by daemon).",
+    )
+
     wait_p = sub.add_parser(
         "wait-for-stage",
         help="Block until game reaches a diagnostics stage (or timeout).",
@@ -126,7 +136,9 @@ def build_parser() -> argparse.ArgumentParser:
         help="Seconds to wait (default: 120).",
     )
 
-    launch_p = sub.add_parser("launch", help="Clear logs, copy config, spawn GameLauncher.")
+    launch_p = sub.add_parser(
+        "launch", help="Clear logs, copy config, spawn GameLauncher."
+    )
     launch_p.add_argument("-p", "--game-exe", type=Path, default=None)
     launch_p.add_argument("-s", "--server-ip", default=None)
     launch_p.add_argument(
@@ -252,6 +264,11 @@ def _handle_stop(_args: argparse.Namespace) -> int:
     return 0
 
 
+def _handle_send(args: argparse.Namespace) -> int:
+    _print_result(rpc(SendCommand(message=args.message)))
+    return 0
+
+
 DISPATCH: dict[str, Callable[[argparse.Namespace], int]] = {
     "ping": _handle_ping,
     "processes": _handle_processes,
@@ -263,6 +280,7 @@ DISPATCH: dict[str, Callable[[argparse.Namespace], int]] = {
     "copy-dll": _handle_copy_dll,
     "clear-logs": _handle_clear_logs,
     "copy-logs": _handle_copy_logs,
+    "send": _handle_send,
     "stop": _handle_stop,
 }
 

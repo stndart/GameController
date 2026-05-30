@@ -69,3 +69,6 @@ wait-menu:
 
 wait-stage stage timeout="120":
     {{ctl}} wait-for-stage {{stage}} --timeout {{timeout}}
+
+send message:
+    {{ctl}} send {{message}}

@@ -12,6 +12,7 @@ from .launch import LaunchCommand
 from .list_stages import ListStagesCommand
 from .ping import PingCommand
 from .processes import ProcessesCommand
+from .send import SendCommand
 from .status import StatusCommand
 from .wait_stage import WaitForStageCommand
 
@@ -34,6 +35,7 @@ command_adapter = TypeAdapter(
     | KillCommand
     | WaitForStageCommand
     | ListStagesCommand
+    | SendCommand
     | StopCommand
 )
 

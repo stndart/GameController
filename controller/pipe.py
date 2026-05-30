@@ -103,13 +103,17 @@ class PipeMixin:
                 raise e
         raise TimeoutError("Timeout reading from pipe")
 
+    def _write_disconnected(self, exc: BaseException) -> bool:
+        winerror = getattr(exc, "winerror", None)
+        if winerror in (ERROR_BROKEN_PIPE, ERROR_PIPE_NOT_CONNECTED):
+            return False
+        raise exc
+
     def write_message(self, data: bytes | str, separator: bytes = b"\n") -> bool:
         try:
             self.write(data, separator)
-        except win32pipe.error as e:
-            if e.winerror == ERROR_BROKEN_PIPE:
-                return False
-            raise e
+        except (win32pipe.error, win32file.error) as e:
+            return self._write_disconnected(e)
         return True
 
 

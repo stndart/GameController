@@ -9,10 +9,13 @@ from enum import StrEnum, auto
 from pathlib import Path
 from threading import Condition, Thread
 from time import monotonic, sleep
-from typing import Any, TextIO
+from typing import TYPE_CHECKING, Any, TextIO
 
 from paths import events_path, meta_path, new_run_id, run_dir, write_last_run
 from pipe import PipeDisconnectedError, PipeServer
+
+if TYPE_CHECKING:
+    from handler import HandlerPipeSession
 
 
 def _utc_now() -> str:
@@ -67,8 +70,14 @@ class GameState:
     _stage_cond: Condition
     timeout: float = -1  # timeout between diagnostics reads
 
-    def __init__(self, diag_pipe: PipeServer):
+    def __init__(
+        self,
+        diag_pipe: PipeServer,
+        *,
+        handler: HandlerPipeSession | None = None,
+    ):
         self.diag_pipe = diag_pipe
+        self.handler = handler
         self.progress = Progress()
         self._stage_cond = Condition()
         self.diag_thread = Thread(target=self.diag_thread_func, daemon=True)
