@@ -12,13 +12,13 @@ import json
 import math
 import subprocess
 import sys
+from collections.abc import Callable
 from pathlib import Path
 
 from commands import (
-    ClearProudnetTcpCommand,
+    ClearLogsCommand,
     CopyDllCommand,
     CopyLogsCommand,
-    CopyProudnetTcpCommand,
     KillCommand,
     LaunchCommand,
     ListStagesCommand,
@@ -54,7 +54,6 @@ def rpc(command: Command, *, timeout: float = 30.0) -> dict:
     try:
         if not client.write_message(command.model_dump_json()):
             raise DaemonNotRunningError("Failed to invoke rpc.")
-        # Must match daemon work duration (e.g. wait-for-stage, launch pid wait).
         raw = client.read_message(timeout=timeout)
     finally:
         client.close()
@@ -65,6 +64,14 @@ def rpc(command: Command, *, timeout: float = 30.0) -> dict:
     if payload.get("status") != "ok":
         raise RuntimeError(f"unexpected response: {payload}")
     return payload
+
+
+def _print_result(result: dict) -> None:
+    print(json.dumps(result, indent=2))
+
+
+def _game_exe(args: argparse.Namespace) -> Path:
+    return (args.game_exe or LaunchSettings().GAME_PATH).resolve()
 
 
 def run_daemon_background() -> int:
@@ -92,11 +99,7 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Run elevated daemon server (use with gsudo).",
     )
-    parser.add_argument(
-        "--foreground",
-        action="store_true",
-        help=argparse.SUPPRESS,
-    )
+    parser.add_argument("--foreground", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument(
         "--background",
         action="store_true",
@@ -123,24 +126,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="Seconds to wait (default: 120).",
     )
 
-    launch_p = sub.add_parser("launch", help="Copy config and spawn GameLauncher.")
-    launch_p.add_argument(
-        "-p",
-        "--game-exe",
-        type=Path,
-        default=None,
-    )
+    launch_p = sub.add_parser("launch", help="Clear logs, copy config, spawn GameLauncher.")
+    launch_p.add_argument("-p", "--game-exe", type=Path, default=None)
     launch_p.add_argument("-s", "--server-ip", default=None)
     launch_p.add_argument(
         "--offline",
         action="store_true",
         help="Use localhost token (no API).",
-    )
-    launch_p.add_argument(
-        "--nav-auto",
-        default=None,
-        metavar="MODE",
-        help="THEGAME_NAV_AUTO for GAME.exe (e.g. create_room).",
     )
 
     kill_p = sub.add_parser("kill", help="Force-kill game processes.")
@@ -159,31 +151,120 @@ def build_parser() -> argparse.ArgumentParser:
     copy_dll_p.add_argument("--dll-source", type=Path, default=None)
     copy_dll_p.add_argument("-p", "--game-exe", type=Path, default=None)
 
+    clear_logs_p = sub.add_parser(
+        "clear-logs",
+        help="Delete shipping game log files next to GAME.exe.",
+    )
+    clear_logs_p.add_argument("-p", "--game-exe", type=Path, default=None)
+
     copy_logs_p = sub.add_parser(
         "copy-logs",
-        help="Copy shipping logs.txt, netlogs.txt, proudnet_tcp.txt into run dir.",
+        help="Copy shipping game logs into run dir (see ctl.yaml game_log_files).",
     )
     copy_logs_p.add_argument("--run-id", default=None)
     copy_logs_p.add_argument("-p", "--game-exe", type=Path, default=None)
 
-    copy_pn_tcp_p = sub.add_parser(
-        "copy-proudnet-tcp",
-        help="Copy proudnet_tcp.txt next to GAME.exe into run dir.",
-    )
-    copy_pn_tcp_p.add_argument("--run-id", default=None)
-    copy_pn_tcp_p.add_argument("-p", "--game-exe", type=Path, default=None)
-
-    clear_pn_tcp_p = sub.add_parser(
-        "clear-proudnet-tcp",
-        help="Delete proudnet_tcp.txt next to GAME.exe.",
-    )
-    clear_pn_tcp_p.add_argument("-p", "--game-exe", type=Path, default=None)
-
     return parser
 
 
-def _default_game_exe() -> Path:
-    return LaunchSettings().GAME_PATH
+def _handle_ping(_args: argparse.Namespace) -> int:
+    _print_result(rpc(PingCommand()))
+    return 0
+
+
+def _handle_processes(_args: argparse.Namespace) -> int:
+    _print_result(rpc(ProcessesCommand()))
+    return 0
+
+
+def _handle_status(_args: argparse.Namespace) -> int:
+    _print_result(rpc(StatusCommand()))
+    return 0
+
+
+def _handle_stages(_args: argparse.Namespace) -> int:
+    _print_result(rpc(ListStagesCommand()))
+    return 0
+
+
+def _handle_wait_for_stage(args: argparse.Namespace) -> int:
+    timeout = max(args.timeout, 0.0)
+    result = rpc(
+        WaitForStageCommand(stage=args.stage, timeout=timeout),
+        timeout=timeout + 10.0,
+    )
+    _print_result(result)
+    return 0 if result.get("reached") else 1
+
+
+def _handle_launch(args: argparse.Namespace) -> int:
+    game = str(_game_exe(args))
+    _print_result(rpc(ClearLogsCommand(game_exe=game)))
+    result = rpc(
+        LaunchCommand(
+            game_exe=game,
+            server_ip=args.server_ip,
+            offline=args.offline,
+        ),
+        timeout=130.0,
+    )
+    _print_result(result)
+    return 0
+
+
+def _handle_kill(args: argparse.Namespace) -> int:
+    _print_result(rpc(KillCommand(all=args.all)))
+    return 0
+
+
+def _handle_copy_dll(args: argparse.Namespace) -> int:
+    _print_result(
+        rpc(
+            CopyDllCommand(
+                dll_config=args.dll_config,
+                dll_source=str(args.dll_source) if args.dll_source else None,
+                game_exe=str(_game_exe(args)),
+            )
+        )
+    )
+    return 0
+
+
+def _handle_clear_logs(args: argparse.Namespace) -> int:
+    _print_result(rpc(ClearLogsCommand(game_exe=str(_game_exe(args)))))
+    return 0
+
+
+def _handle_copy_logs(args: argparse.Namespace) -> int:
+    _print_result(
+        rpc(
+            CopyLogsCommand(
+                run_id=args.run_id,
+                game_exe=str(_game_exe(args)),
+            )
+        )
+    )
+    return 0
+
+
+def _handle_stop(_args: argparse.Namespace) -> int:
+    rpc(StopCommand())
+    return 0
+
+
+DISPATCH: dict[str, Callable[[argparse.Namespace], int]] = {
+    "ping": _handle_ping,
+    "processes": _handle_processes,
+    "status": _handle_status,
+    "stages": _handle_stages,
+    "wait-for-stage": _handle_wait_for_stage,
+    "launch": _handle_launch,
+    "kill": _handle_kill,
+    "copy-dll": _handle_copy_dll,
+    "clear-logs": _handle_clear_logs,
+    "copy-logs": _handle_copy_logs,
+    "stop": _handle_stop,
+}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -203,112 +284,19 @@ def main(argv: list[str] | None = None) -> int:
         parser.print_help()
         return 0
 
+    handler = DISPATCH.get(args.command)
+    if handler is None:
+        parser.print_help()
+        return 1
+
     try:
-        if args.command == "ping":
-            result = rpc(PingCommand())
-            print(json.dumps(result, indent=2))
-            return 0
-
-        if args.command == "processes":
-            result = rpc(ProcessesCommand())
-            print(json.dumps(result, indent=2))
-            return 0
-
-        if args.command == "status":
-            result = rpc(StatusCommand())
-            print(json.dumps(result, indent=2))
-            return 0
-
-        if args.command == "stages":
-            result = rpc(ListStagesCommand())
-            print(json.dumps(result, indent=2))
-            return 0
-
-        if args.command == "wait-for-stage":
-            timeout = max(args.timeout, 0.0)
-            result = rpc(
-                WaitForStageCommand(stage=args.stage, timeout=timeout),
-                timeout=timeout + 10.0,
-            )
-            print(json.dumps(result, indent=2))
-            return 0 if result.get("reached") else 1
-
-        if args.command == "launch":
-            game = args.game_exe or _default_game_exe()
-            import os
-
-            from launch_game import write_nav_auto
-
-            nav_auto = args.nav_auto or os.environ.get("THEGAME_NAV_AUTO")
-            # Client-side sidecar: daemon may run stale code without nav_auto in RPC.
-            write_nav_auto(game.resolve(), (nav_auto or "").strip())
-            cmd = LaunchCommand(
-                game_exe=str(game.resolve()),
-                server_ip=args.server_ip,
-                offline=args.offline,
-                nav_auto=nav_auto,
-            )
-            # state.start() may block up to 120s waiting for game pid from diagnostics.
-            result = rpc(cmd, timeout=130.0)
-            print(json.dumps(result, indent=2))
-            return 0
-
-        if args.command == "kill":
-            result = rpc(KillCommand(all=args.all))
-            print(json.dumps(result, indent=2))
-            return 0
-
-        if args.command == "copy-dll":
-            game = args.game_exe or _default_game_exe()
-            cmd = CopyDllCommand(
-                dll_config=args.dll_config,
-                dll_source=str(args.dll_source) if args.dll_source else None,
-                game_exe=str(game.resolve()),
-            )
-            result = rpc(cmd)
-            print(json.dumps(result, indent=2))
-            return 0
-
-        if args.command == "copy-logs":
-            game = args.game_exe or _default_game_exe()
-            cmd = CopyLogsCommand(
-                run_id=args.run_id,
-                game_exe=str(game.resolve()),
-            )
-            result = rpc(cmd)
-            print(json.dumps(result, indent=2))
-            return 0
-
-        if args.command == "copy-proudnet-tcp":
-            game = args.game_exe or _default_game_exe()
-            cmd = CopyProudnetTcpCommand(
-                run_id=args.run_id,
-                game_exe=str(game.resolve()),
-            )
-            result = rpc(cmd)
-            print(json.dumps(result, indent=2))
-            return 0
-
-        if args.command == "clear-proudnet-tcp":
-            game = args.game_exe or _default_game_exe()
-            cmd = ClearProudnetTcpCommand(game_exe=str(game.resolve()))
-            result = rpc(cmd)
-            print(json.dumps(result, indent=2))
-            return 0
-
-        if args.command == "stop":
-            rpc(StopCommand())
-            return 0
-
+        return handler(args)
     except DaemonNotRunningError as e:
         print(f"error: {e}", file=sys.stderr)
         return 1
     except (RuntimeError, ValueError, OSError) as e:
         print(f"error: {e}", file=sys.stderr)
         return 1
-
-    parser.print_help()
-    return 1
 
 
 if __name__ == "__main__":

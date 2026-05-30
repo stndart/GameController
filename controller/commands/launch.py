@@ -7,7 +7,7 @@ from json import dumps
 from pathlib import Path
 from typing import Any, Literal
 
-from config import Settings, fresh_settings
+from config import Settings
 from gamestate import CommandError, GameState
 from launch_game import (
     Settings as LaunchSettings,
@@ -18,12 +18,10 @@ from launch_game import (
     resolve_server_ip,
     spawn_game_launcher,
     write_config,
-    write_nav_auto,
     write_server_override,
 )
 
 from .common import Command
-from .copy_logs import clear_shipping_game_logs
 
 
 class LaunchCommandError(CommandError):
@@ -35,8 +33,6 @@ class LaunchCommand(Command):
     game_exe: str | None = None
     server_ip: str | None = None
     offline: bool = False
-    # Passed from CLI (client env); daemon does not inherit THEGAME_NAV_AUTO from shell.
-    nav_auto: str | None = None
 
     def invoke(self, settings: Settings, state: GameState) -> str:
         if state._running:
@@ -67,23 +63,12 @@ class LaunchCommand(Command):
             )
             kernel_check_disable = launch_data.get("kernel_check_disable") is True
 
-            clear_shipping_game_logs(game_exe)
             write_config(launch_settings, game_exe, launch_token, server_ip)
             write_server_override(game_exe, server_ip)
-            runtime = fresh_settings()
-            nav_mode = (
-                (self.nav_auto or "").strip()
-                or runtime.thegame_nav_auto.strip()
-            ).strip()
-            write_nav_auto(game_exe, nav_mode)
-            child_env = runtime.game_child_env()
-            if nav_mode:
-                child_env["THEGAME_NAV_AUTO"] = nav_mode
             proc = spawn_game_launcher(
                 launch_settings,
                 launch_token,
                 kernel_check_disable,
-                extra_env=child_env,
             )
         except (RuntimeError, urllib.error.URLError, OSError) as e:
             raise LaunchCommandError(f"Failed to launch game: {e}") from e

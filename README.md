@@ -11,13 +11,13 @@ uv sync
 Config files (optional):
 
 
-| File      | Purpose                                                 |
-| --------- | ------------------------------------------------------- |
-| `ctl.env` | Pipe names, DLL paths, optional `thegame_nav_auto` / `thegame_nav_action` (`config.py` → `game_child_env`) |
-| `.env`    | Game path, API, account token (`launch_game.Settings`)  |
+| File              | Purpose                                                                 |
+| ----------------- | ----------------------------------------------------------------------- |
+| `ctl.yaml`        | Pipe names, DLL paths, `game_log_files` (`Settings` in `config.py`)     |
+| `ctl.yaml.example`| Defaults; copy to `ctl.yaml` and edit                                   |
+| `launch.yaml`     | Game path, API, account token (`launch_game.Settings`)                    |
 
-**Autonomous navigation:** `just ctl::launch-offline-nav` (`create_room`), `just ctl::launch-offline-exit-nav` (`exit_lobby`), `just ctl::run-exit-lobby-test`, `just ctl::run-nav-matrix` (all nav actions). See [docs/rmi/autonav.md](../docs/rmi/autonav.md). `ctl/ctl.env` is **re-read on every launch** (no daemon restart for nav keys); restart daemon only after ctl Python changes.
-
+`game_log_files` in `ctl.yaml` is re-read on each `copy-logs` / `clear-logs` RPC (`fresh_settings()`).
 
 **One-time elevated daemon** (UAC / gsudo):
 
@@ -52,7 +52,7 @@ Artifacts land in `logs/runs/<run_id>/`:
 | ------------------------------------ | -------------------------------------- |
 | `events.jsonl`                       | NDJSON diagnostics events from the DLL |
 | `meta.json`                          | Run metadata, `game_states`, progress  |
-| `game_logs.txt` / `game_netlogs.txt` | Copied from shipping dir (`copy-logs`) |
+| `game_*.txt`                         | Copied from shipping dir (`copy-logs`, per `game_log_files`) |
 
 
 `logs/ctl/last_run.json` points at the latest run for `copy-logs` without `--run-id`.
@@ -105,11 +105,13 @@ Exit code `1` if the stage was not reached before `--timeout` (default 120s).
 | `ctl kill`                | Kill tracked launcher PID                                  |
 | `ctl kill --all`          | Kill game images and end session                           |
 | `ctl copy-dll`            | Copy TheGame.dll beside GAME.exe                           |
+| `ctl clear-logs`          | Delete shipping logs next to GAME.exe                      |
 | `ctl copy-logs`           | Copy shipping logs into run dir                            |
+| `ctl launch`              | clear-logs, then spawn launcher                            |
 | `ctl stop`                | Shut down daemon                                           |
 
 
-Credentials are read from `store.json` / `.env` (`launch_game`).
+Credentials are read from `store.json` / `launch.yaml` (`launch_game`).
 
 ## Troubleshooting
 

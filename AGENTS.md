@@ -11,6 +11,11 @@
 
 When this tree is a submodule, parent `justfile` should `mod ctl` the same way.
 
+### Config
+
+- [`ctl.yaml`](ctl.yaml) — pipe names, DLL paths, `game_log_files` (copy from [`ctl.yaml.example`](ctl.yaml.example))
+- `launch` runs `clear-logs` then starts the game (no log clearing inside launch RPC)
+
 ### Supported commands (invoke as `just ctl::<name>`)
 
 - `ping` - daemon status
@@ -20,24 +25,13 @@ When this tree is a submodule, parent `justfile` should `mod ctl` the same way.
 - `kill` - kills the running GAME.exe instance.
 - `kill-all` - kills all running GAME.exe / GameLauncher.exe processes
 - `copy-dll [dll_config=]` - copies fresh dll to the game directory. dll_config=debug/release (debug by default)
-- `copy-logs` - copies `logs.txt`, `netlogs.txt`, and `proudnet_tcp.txt` from the game directory to `logs/runs/<run_id>/` (`game_logs.txt`, `game_netlogs.txt`, `game_proudnet_tcp.txt`)
+- `clear-logs` - deletes shipping log files next to GAME.exe (per `game_log_files` in ctl.yaml)
+- `copy-logs` - copies shipping logs into `logs/runs/<run_id>/` (names from `game_log_files`)
 - `copy-logs-run <run_id>` - copies logs from game directory with specified run_id.
-- `copy-proudnet-tcp` - copies only `proudnet_tcp.txt` next to GAME.exe into the current run dir
-- `copy-proudnet-tcp-run <run_id>` - same with an explicit run id
-- `clear-proudnet-tcp` - deletes `proudnet_tcp.txt` next to GAME.exe (also cleared on `launch` / `launch-offline` with the other shipping logs)
-- `launch [server_ip=]` - exchanges the credentials for token and starts the game. `<server_ip>` is overriden if not empty. The game logs are cleared before start.
-- `launch-offline [server_ip=]` - starts the game without fetching the credentials (auth disabled).
-- `launch-offline-nav [server_ip=]` - offline + `--nav-auto create_room`.
-- `launch-offline-exit-nav [server_ip=]` - offline + `--nav-auto exit_lobby` (lobby → shard picker).
-- `run-exit-lobby-test [dll_config=] [server_ip=] [timeout=]` - copy-dll, exit_lobby launch, wait `server_ready`, kill-all, copy-logs.
-- `wait-menu` - blocks until game stage `server_ready` (shard picker done; alias for `wait-stage server_ready`)
+- `launch [server_ip=]` - clear-logs, then exchange credentials and start the game. `<server_ip>` is overriden if not empty.
+- `launch-offline [server_ip=]` - clear-logs, then start the game without fetching credentials (auth disabled).
+- `wait-menu` - blocks until game stage `server_ready` (alias for `wait-stage server_ready`)
 - `wait-stage <stage> [timeout=]` - blocks until specific game stage. timeout=120 by default.
-- `run-session [dll_config=]` - chains `copy-dll`, `launch`, `wait-menu` (`server_ready`), `kill-all` and `copy-logs`. dll_config=debug by default.
-- `run-session-offline [dllconfig=] [server_ip=]` - the same chain except `launch` is replaced with `launch-offline [server_ip]`. server_ip=127.0.0.1 by default.
-
-### Commands not working at the moment
-- `launch` and `run-session` - auth server is down, the game stucks at "connecting_to_server" stage.
-
 ### Commands available only with human approval
 
 - `stop` - stops the daemon. Daemon can be only started by human, so this action alone is destructive for workflow.

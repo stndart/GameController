@@ -6,7 +6,7 @@ from pydantic import TypeAdapter
 
 from .common import Command
 from .copy_dll import CopyDllCommand
-from .copy_logs import ClearProudnetTcpCommand, CopyLogsCommand, CopyProudnetTcpCommand
+from .copy_logs import ClearLogsCommand, CopyLogsCommand
 from .kill import KillCommand
 from .launch import LaunchCommand
 from .list_stages import ListStagesCommand
@@ -30,8 +30,7 @@ command_adapter = TypeAdapter(
     | StatusCommand
     | CopyDllCommand
     | CopyLogsCommand
-    | CopyProudnetTcpCommand
-    | ClearProudnetTcpCommand
+    | ClearLogsCommand
     | KillCommand
     | WaitForStageCommand
     | ListStagesCommand

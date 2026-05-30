@@ -1,0 +1,7 @@
+ctl_pipe_name: thegame-ctl
+diagnostics_pipe_name: thegame-diagnostics
+handler_pipe_name: thegame-handler
+game_log_files:
+  - [logs.txt, game_logs.txt]
+  - [netlogs.txt, game_netlogs.txt]
+  - [proudnet_tcp.txt, game_proudnet_tcp.txt]

@@ -17,11 +17,25 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
+import yaml
+from config import REPO_ROOT
+from pydantic_settings import (
+    BaseSettings,
+    PydanticBaseSettingsSource,
+    SettingsConfigDict,
+    YamlConfigSettingsSource,
+)
+
+LAUNCH_CONFIG_FILE = REPO_ROOT / "launch.yaml"
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env")
+    model_config = SettingsConfigDict(
+        yaml_file=LAUNCH_CONFIG_FILE,
+        yaml_file_encoding="utf-8",
+        extra="ignore",
+        env_file=None,
+    )
 
     LAUNCHER_ROOT: Path = Path(r"C:\Users\Svyat\AppData\Local\Programs\fa-emu-launcher")
     GAME_PATH: Path = Path(r"G:\Games\FA\FA-EMU\Shipping\GAME.exe")
@@ -38,6 +52,38 @@ class Settings(BaseSettings):
     ENABLE_DISCORD_PRESENCE: bool = False
     ENABLE_EXCLUSIVE_FULLSCREEN: bool = False
     SHOW_INGAME_FPS_COUNTER: bool = True
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
+        return (
+            init_settings,
+            YamlConfigSettingsSource(settings_cls),
+        )
+
+    def save(
+        self,
+        path: Path | None = None,
+        *,
+        exclude_defaults: bool = False,
+    ) -> None:
+        target = path or LAUNCH_CONFIG_FILE
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(
+            yaml.safe_dump(
+                self.model_dump(mode="json", exclude_defaults=exclude_defaults),
+                default_flow_style=False,
+                sort_keys=False,
+                allow_unicode=True,
+            ),
+            encoding="utf-8",
+        )
 
     def get_store_path(self) -> Path:
         return self.LAUNCHER_ROOT / "store.json"
@@ -137,21 +183,6 @@ def write_server_override(game_path: Path, server_ip: str) -> None:
     server_override_path(game_path).write_text(server_ip + "\n", encoding="ascii")
 
 
-def nav_auto_path(game_path: Path) -> Path:
-    """Sidecar read by TheGame.dll when GameLauncher does not pass env to GAME.exe."""
-    return game_path.parent / "TheGame.nav_auto"
-
-
-def write_nav_auto(game_path: Path, mode: str) -> None:
-    path = nav_auto_path(game_path)
-    mode = (mode or "").strip()
-    if not mode:
-        if path.is_file():
-            path.unlink()
-        return
-    path.write_text(mode + "\n", encoding="ascii")
-
-
 def write_config(
     settings: Settings, game_path: Path, launch_token: str, server_ip: str
 ) -> None:
@@ -174,8 +205,6 @@ def spawn_game_launcher(
     settings: Settings,
     launch_token: str,
     kernel_check_disable: bool,
-    *,
-    extra_env: dict[str, str] | None = None,
 ) -> subprocess.Popen:
     args = [str(settings.get_game_launcher_exe()), launch_token]
     if kernel_check_disable:
@@ -185,18 +214,10 @@ def spawn_game_launcher(
     if sys.platform == "win32":
         creationflags = subprocess.DETACHED_PROCESS | subprocess.CREATE_NO_WINDOW
 
-    env = None
-    if extra_env:
-        import os
-
-        env = os.environ.copy()
-        env.update(extra_env)
-
     return subprocess.Popen(
         args,
         cwd=str(settings.LAUNCHER_ROOT),
         creationflags=creationflags,
-        env=env,
     )
 
 
