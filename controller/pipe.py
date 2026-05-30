@@ -11,6 +11,7 @@ from win32.lib.winerror import (
     ERROR_FILE_NOT_FOUND,
     ERROR_NO_DATA,
     ERROR_PIPE_BUSY,
+    ERROR_PIPE_CONNECTED,
     ERROR_PIPE_LISTENING,
     ERROR_PIPE_NOT_CONNECTED,
 )
@@ -105,7 +106,11 @@ class PipeMixin:
 
     def _write_disconnected(self, exc: BaseException) -> bool:
         winerror = getattr(exc, "winerror", None)
-        if winerror in (ERROR_BROKEN_PIPE, ERROR_PIPE_NOT_CONNECTED):
+        if winerror in (
+            ERROR_BROKEN_PIPE,
+            ERROR_PIPE_NOT_CONNECTED,
+            ERROR_NO_DATA,
+        ):
             return False
         raise exc
 
@@ -142,10 +147,19 @@ class PipeServer(PipeMixin):
         try:
             win32pipe.ConnectNamedPipe(self.pipe.handle)
         except win32pipe.error as e:
-            if e.winerror == ERROR_PIPE_LISTENING:
+            if e.winerror in (ERROR_PIPE_LISTENING, ERROR_NO_DATA):
+                if e.winerror == ERROR_NO_DATA:
+                    self.force_disconnect()
                 return False
+            if e.winerror == ERROR_PIPE_CONNECTED:
+                return True
             raise e
         return True
+
+    def prepare_for_accept(self) -> None:
+        """Reset pipe state before waiting for a new game client."""
+        self.pending = b""
+        self.force_disconnect()
 
     def disconnect(self):
         # blocks until client reads it all

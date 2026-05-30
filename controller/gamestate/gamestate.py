@@ -109,6 +109,7 @@ class GameState:
         events = events_path(self.run_id)
         self.events_file = events.open("w", encoding="utf-8")
 
+        self.diag_pipe.prepare_for_accept()
         self.diag_thread = Thread(target=self.diag_thread_func, daemon=True)
         self.diag_thread.start()
 
@@ -183,8 +184,13 @@ class GameState:
             return True
 
     def diag_thread_func(self) -> None:
-        while self._running and not self.diag_pipe.accept():
-            sleep(0.1)
+        try:
+            while self._running and not self.diag_pipe.accept():
+                sleep(0.1)
+        except Exception as e:
+            print(f"[daemon] diagnostics accept error: {e}")
+            self.diag_pipe.force_disconnect()
+            return
 
         if not self._running:
             return
@@ -229,6 +235,9 @@ class GameState:
             self._stage_cond.notify_all()
         print(f"[stage] diag_disconnected run_id={self.run_id}")
 
+        if self.handler is not None:
+            self.handler.reset_session()
+
     def end_session(self) -> None:
         """Stop diagnostics reader, finalize meta; keep run_id for copy_logs."""
         self._running = False
@@ -236,6 +245,10 @@ class GameState:
 
         if self.diag_thread.is_alive():
             self.diag_thread.join(timeout=5.0)
+
+        self.diag_pipe.prepare_for_accept()
+        if self.handler is not None:
+            self.handler.reset_session()
 
         if self.events_file is not None:
             self.events_file.close()

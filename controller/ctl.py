@@ -77,7 +77,8 @@ class Ctl:
 
     def execute_command(self, command: str) -> str:
         command_data = command_adapter.validate_json(command)
-        print(f"Received command: {command_data.command}")
+        args_line = ', '.join(f'{k}={v}' for k, v in command_data.model_dump().items() if k != 'command')
+        print(f"Received command: {command_data.command} [{args_line}]")
         if isinstance(command_data, StopCommand):
             self._running = False
             return json.dumps({"status": "ok"})

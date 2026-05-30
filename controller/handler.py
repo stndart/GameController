@@ -53,6 +53,11 @@ class HandlerPipeSession:
             self._thread.join(timeout=5.0)
         self._thread = None
 
+    def reset_session(self) -> None:
+        """Drop client state when the game exits (diagnostics disconnected)."""
+        with self._lock:
+            self._mark_disconnected_locked()
+
     def request(self, message: str, *, timeout: float) -> str:
         """Send a command and read one line response from the game."""
         with self._lock:
@@ -111,5 +116,6 @@ class HandlerPipeSession:
                 with self._lock:
                     was_connected = self._connected
                     self._mark_disconnected_locked()
+                self._pipe.prepare_for_accept()
                 if was_connected:
                     print(f"[daemon] handler disconnected pipe={self._pipe_name}")
