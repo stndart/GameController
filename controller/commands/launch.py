@@ -33,6 +33,7 @@ class LaunchCommand(Command):
     game_exe: str | None = None
     server_ip: str | None = None
     offline: bool = False
+    proxy: bool = False
 
     def invoke(self, settings: Settings, state: GameState) -> str:
         if state._running:
@@ -48,7 +49,8 @@ class LaunchCommand(Command):
 
         launch_data: dict[str, Any] = {}
         try:
-            if not self.offline:
+            use_upstream_auth = not self.offline or self.proxy
+            if use_upstream_auth:
                 account_token = load_account_token(launch_settings)
                 launch_data = fetch_launch_credentials(launch_settings, account_token)
                 launch_token = str(launch_data["token"])
@@ -60,6 +62,7 @@ class LaunchCommand(Command):
                 self.server_ip,
                 launch_data,
                 offline=self.offline,
+                proxy=self.proxy,
             )
             kernel_check_disable = launch_data.get("kernel_check_disable") is True
 

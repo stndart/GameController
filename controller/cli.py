@@ -152,6 +152,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Use localhost token (no API).",
     )
+    launch_p.add_argument(
+        "--proxy",
+        action="store_true",
+        help="127.0.0.1 entry with real launch token (use with server::proxy).",
+    )
 
     kill_p = sub.add_parser("kill", help="Force-kill game processes.")
     kill_p.add_argument(
@@ -223,6 +228,7 @@ def _handle_launch(args: argparse.Namespace) -> int:
             game_exe=game,
             server_ip=args.server_ip,
             offline=args.offline,
+            proxy=args.proxy,
         ),
         timeout=130.0,
     )

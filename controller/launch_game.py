@@ -227,10 +227,11 @@ def resolve_server_ip(
     launch_data: dict[str, Any],
     *,
     offline: bool = False,
+    proxy: bool = False,
 ) -> str:
     if cli_server_ip is not None:
         return cli_server_ip
-    if offline:
+    if offline or proxy:
         return "127.0.0.1"
     api_ip = launch_data.get("server_ip")
     if api_ip:
@@ -272,6 +273,12 @@ def main() -> int:
         action="store_true",
         help="Run the game in localhost mode",
     )
+    parser.add_argument(
+        "--proxy",
+        default=False,
+        action="store_true",
+        help="Local ProudNet entry (127.0.0.1) with real launch token (transparent proxy)",
+    )
     args = parser.parse_args()
 
     if (args.username is None) != (args.password is None):
@@ -291,7 +298,8 @@ def main() -> int:
 
     try:
         launch_data = dict()
-        if not args.offline:
+        use_upstream_auth = not args.offline or args.proxy
+        if use_upstream_auth:
             if args.username:
                 account_token = login(settings, args.username, args.password)
             else:
@@ -303,7 +311,11 @@ def main() -> int:
             launch_token = args.session_token or "localhost"
 
         server_ip = resolve_server_ip(
-            settings, args.server_ip, launch_data, offline=args.offline
+            settings,
+            args.server_ip,
+            launch_data,
+            offline=args.offline,
+            proxy=args.proxy,
         )
         kernel_check_disable = launch_data.get("kernel_check_disable") is True
 

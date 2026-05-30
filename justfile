@@ -61,7 +61,12 @@ copy-logs-run run_id:
 launch server_ip="":
     {{ctl}} launch -p "{{game_exe}}"{{ if server_ip != '' { ' -s ' + server_ip } else { '' } }}
 
+# Local entry (127.0.0.1) + real auth for transparent proxy (just server::proxy).
 launch-offline server_ip="127.0.0.1":
+    {{ctl}} launch -p "{{game_exe}}" -s "{{server_ip}}" --proxy
+
+# Python ProudNet emulator (just server::ensure); localhost launch token.
+launch-dummy server_ip="127.0.0.1":
     {{ctl}} launch -p "{{game_exe}}" -s "{{server_ip}}" --offline
 
 wait-menu:
