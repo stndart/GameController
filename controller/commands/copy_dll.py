@@ -3,40 +3,33 @@ from json import dumps
 from pathlib import Path
 from typing import Literal
 
-from config import Settings
+from config import REPO_ROOT, Settings
 from gamestate import CommandError, GameState
 from launch_game import Settings as LaunchSettings
 
 from .common import Command
-
-DllConfig = Literal[
-    "debug",
-    "debug-nohooks",
-    "debug-diag",
-    "debug-diag-net",
-    "debug-wire",
-    "release",
-]
 
 
 class CopyDllCommandError(CommandError):
     pass
 
 
-def resolve_dll_source(
-    settings: Settings, dll_config: DllConfig, dll_source: str | None
-) -> Path:
+def dll_path_for_config(dll_config: str) -> Path:
+    build_dir = (
+        dll_config if dll_config.startswith("msvc-x86-") else f"msvc-x86-{dll_config}"
+    )
+    return REPO_ROOT.parent / "build" / build_dir / "bin" / "TheGame.dll"
+
+
+def resolve_dll_source(dll_config: str, dll_source: str | None) -> Path:
     if dll_source:
         return Path(dll_source).resolve()
-    path = settings.dll_configs.get(dll_config)
-    if path is None:
-        raise CopyDllCommandError(f"unknown dll_config: {dll_config}")
-    return path.resolve()
+    return dll_path_for_config(dll_config).resolve()
 
 
 class CopyDllCommand(Command):
     command: Literal["copy_dll"] = "copy_dll"
-    dll_config: DllConfig = "debug"
+    dll_config: str = "debug"
     dll_source: str | None = None
     game_exe: str | None = None
 
@@ -49,11 +42,11 @@ class CopyDllCommand(Command):
         if not game_exe.is_file():
             raise CopyDllCommandError(f"GAME.exe not found: {game_exe}")
 
-        source = resolve_dll_source(settings, self.dll_config, self.dll_source)
+        source = resolve_dll_source(self.dll_config, self.dll_source)
         if not source.is_file():
             raise CopyDllCommandError(
                 f"TheGame.dll not found for {self.dll_config}: {source}. "
-                "Build first or pass dll_source."
+                "Build first or pass --dll-source."
             )
 
         target = game_exe.with_name(source.name)

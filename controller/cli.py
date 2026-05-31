@@ -168,15 +168,13 @@ def build_parser() -> argparse.ArgumentParser:
     copy_dll_p = sub.add_parser("copy-dll", help="Copy TheGame.dll next to GAME.exe.")
     copy_dll_p.add_argument(
         "--dll-config",
-        choices=[
-            "debug",
-            "debug-nohooks",
-            "debug-diag",
-            "debug-diag-net",
-            "debug-wire",
-            "release",
-        ],
         default="debug",
+        metavar="PRESET",
+        help=(
+            "CMake build preset name (e.g. debug, debug-diag-no-map) or full "
+            "configure preset (msvc-x86-*). Resolves to "
+            "build/msvc-x86-<preset>/bin/TheGame.dll unless --dll-source is set."
+        ),
     )
     copy_dll_p.add_argument("--dll-source", type=Path, default=None)
     copy_dll_p.add_argument("-p", "--game-exe", type=Path, default=None)

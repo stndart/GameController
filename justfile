@@ -46,19 +46,9 @@ kill:
 kill-all:
     {{ctl}} kill --all
 
-# debug | release only; other presets → copy-dll-any <build_dir>
+# e.g. just ctl::copy-dll debug-diag-no-map  →  build/msvc-x86-debug-diag-no-map/bin/TheGame.dll
 copy-dll dll_config="debug":
     {{ctl}} copy-dll --dll-config {{dll_config}} -p "{{game_exe}}"
-
-copy-dll-debug:
-    {{ctl}} copy-dll --dll-config debug -p "{{game_exe}}"
-
-copy-dll-release:
-    {{ctl}} copy-dll --dll-config release -p "{{game_exe}}"
-
-# e.g. just ctl::copy-dll-any msvc-x86-debug-nohooks  →  ../build/msvc-x86-debug-nohooks/bin/TheGame.dll
-copy-dll-any build_dir:
-    {{ctl}} copy-dll --dll-source "../build/{{build_dir}}/bin/TheGame.dll" -p "{{game_exe}}"
 
 clear-logs:
     {{ctl}} clear-logs -p "{{game_exe}}"
@@ -70,6 +60,10 @@ copy-logs-run run_id:
     {{ctl}} copy-logs --run-id {{run_id}} -p "{{game_exe}}"
 
 launch server_ip="":
+    {{ctl}} launch -p "{{game_exe}}"{{ if server_ip != '' { ' -s ' + server_ip } else { '' } }}
+
+relaunch server_ip="":
+    {{ctl}} kill
     {{ctl}} launch -p "{{game_exe}}"{{ if server_ip != '' { ' -s ' + server_ip } else { '' } }}
 
 # Local entry (127.0.0.1) + real auth for transparent proxy (just server::proxy).
