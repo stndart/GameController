@@ -3,7 +3,7 @@ requires = ["setuptools >= 77.0.3"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "thegame"
+name = "thegamecontroller"
 version = "0.1.0"
 requires-python = ">=3.10"
 dependencies = [
@@ -12,6 +12,7 @@ dependencies = [
     "pyyaml>=6.0.2",
     "pywin32>=311",
     "types-pywin32>=311.0.0.20260521",
+    "mcp>=1.27.2",
 ]
 
 [dependency-groups]
@@ -25,6 +26,7 @@ where = ["controller"]
 
 [project.scripts]
 ctl = "cli:main"
+ctl-mcp = "mcp_server:main"
 
 [tool.ruff]
 target-version = 'py312'

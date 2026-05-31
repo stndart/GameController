@@ -9,63 +9,15 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
 import subprocess
 import sys
 from collections.abc import Callable
 from pathlib import Path
 
-from commands import (
-    ClearLogsCommand,
-    CommandsCommand,
-    CopyDllCommand,
-    CopyLogsCommand,
-    KillCommand,
-    LaunchCommand,
-    ListStagesCommand,
-    PingCommand,
-    ProcessesCommand,
-    SendCommand,
-    StatusCommand,
-    StopCommand,
-    WaitForStageCommand,
-)
-from commands.common import Command
+import client_ops as ops
+from client_rpc import DaemonNotRunningError
 from config import REPO_ROOT, Settings
 from launch_game import Settings as LaunchSettings
-from pipe import PipeClient
-
-DAEMON_HINT = (
-    "daemon not running; start once with:\n  gsudo ctl -d\n  # or: just daemon-bg"
-)
-
-
-class DaemonNotRunningError(RuntimeError):
-    pass
-
-
-def rpc(command: Command, *, timeout: float = 30.0) -> dict:
-    """Send one command to the daemon and return the parsed response body."""
-    settings = Settings()
-    connect_timeout = max(1, math.ceil(timeout))
-    try:
-        client = PipeClient(settings.ctl_pipe_name, timeout=connect_timeout)
-    except (TimeoutError, FileNotFoundError) as e:
-        raise DaemonNotRunningError(DAEMON_HINT) from e
-
-    try:
-        if not client.write_message(command.model_dump_json()):
-            raise DaemonNotRunningError("Failed to invoke rpc.")
-        raw = client.read_message(timeout=timeout)
-    finally:
-        client.close()
-
-    payload = json.loads(raw)
-    if payload.get("status") == "error":
-        raise RuntimeError(payload.get("error", "unknown error"))
-    if payload.get("status") != "ok":
-        raise RuntimeError(f"unexpected response: {payload}")
-    return payload
 
 
 def _print_result(result: dict) -> None:
@@ -196,102 +148,81 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _handle_ping(_args: argparse.Namespace) -> int:
-    _print_result(rpc(PingCommand()))
+    _print_result(ops.ping())
     return 0
 
 
 def _handle_processes(_args: argparse.Namespace) -> int:
-    _print_result(rpc(ProcessesCommand()))
+    _print_result(ops.processes())
     return 0
 
 
 def _handle_status(_args: argparse.Namespace) -> int:
-    _print_result(rpc(StatusCommand()))
+    _print_result(ops.status())
     return 0
 
 
 def _handle_stages(_args: argparse.Namespace) -> int:
-    _print_result(rpc(ListStagesCommand()))
+    _print_result(ops.stages())
     return 0
 
 
 def _handle_wait_for_stage(args: argparse.Namespace) -> int:
-    timeout = max(args.timeout, 0.0)
-    result = rpc(
-        WaitForStageCommand(stage=args.stage, timeout=timeout),
-        timeout=timeout + 10.0,
-    )
+    result = ops.wait_for_stage(args.stage, timeout=args.timeout)
     _print_result(result)
     return 0 if result.get("reached") else 1
 
 
 def _handle_launch(args: argparse.Namespace) -> int:
-    game = str(_game_exe(args))
-    _print_result(rpc(ClearLogsCommand(game_exe=game)))
-    result = rpc(
-        LaunchCommand(
-            game_exe=game,
+    _print_result(
+        ops.launch(
+            game_exe=_game_exe(args),
             server_ip=args.server_ip,
             offline=args.offline,
             proxy=args.proxy,
-        ),
-        timeout=130.0,
+        )
     )
-    _print_result(result)
     return 0
 
 
 def _handle_kill(args: argparse.Namespace) -> int:
-    _print_result(rpc(KillCommand(all=args.all)))
+    _print_result(ops.kill(all=args.all))
     return 0
 
 
 def _handle_copy_dll(args: argparse.Namespace) -> int:
     _print_result(
-        rpc(
-            CopyDllCommand(
-                dll_config=args.dll_config,
-                dll_source=str(args.dll_source) if args.dll_source else None,
-                game_exe=str(_game_exe(args)),
-            )
+        ops.copy_dll(
+            dll_config=args.dll_config,
+            dll_source=args.dll_source,
+            game_exe=_game_exe(args),
         )
     )
     return 0
 
 
 def _handle_clear_logs(args: argparse.Namespace) -> int:
-    _print_result(rpc(ClearLogsCommand(game_exe=str(_game_exe(args)))))
+    _print_result(ops.clear_logs(game_exe=_game_exe(args)))
     return 0
 
 
 def _handle_copy_logs(args: argparse.Namespace) -> int:
-    _print_result(
-        rpc(
-            CopyLogsCommand(
-                run_id=args.run_id,
-                game_exe=str(_game_exe(args)),
-            )
-        )
-    )
+    _print_result(ops.copy_logs(run_id=args.run_id, game_exe=_game_exe(args)))
     return 0
 
 
 def _handle_stop(_args: argparse.Namespace) -> int:
-    rpc(StopCommand())
+    ops.stop()
     return 0
 
 
 def _handle_send(args: argparse.Namespace) -> int:
-    settings = Settings()
-    timeout = settings.handler_response_timeout + 10.0
-    _print_result(rpc(SendCommand(message=args.message), timeout=timeout))
+    _print_result(ops.send(args.message))
     return 0
 
 
 def _handle_commands(_args: argparse.Namespace) -> int:
-    settings = Settings()
-    timeout = settings.handler_response_timeout + 10.0
-    _print_result(rpc(CommandsCommand(), timeout=timeout))
+    _print_result(ops.handler_commands())
     return 0
 
 

@@ -8,6 +8,10 @@ Elevated Windows daemon plus a non-elevated CLI for launching FA-EMU with TheGam
 uv sync
 ```
 
+### MCP (optional)
+
+Run `uv sync`, then open this folder as the Cursor workspace (uses [`.cursor/mcp.json`](.cursor/mcp.json)) or add a `game-controller` server to `~/.cursor/mcp.json` with `uv run --project <path-to-this-repo> ctl-mcp` (see [AGENTS.md](AGENTS.md)). Requires the elevated daemon; do not use bare system `python` on `mcp_server.py`.
+
 Config files (optional):
 
 

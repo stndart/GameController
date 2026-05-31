@@ -3,6 +3,39 @@
 ## Setup commands
 - `uv sync`
 
+## MCP (Cursor / Claude Desktop)
+
+Client commands are also exposed as MCP tools (no `just` / justfile path required). The elevated **daemon must already be running** (`gsudo ctl -d` or `just daemon-bg`).
+
+**Setup:** `uv sync` once (creates `.venv` with `ctl-mcp`).
+
+**When this repo is the Cursor workspace root**, use the committed [`.cursor/mcp.json`](.cursor/mcp.json) (launcher script + `${workspaceFolder}`). Reload MCP in Cursor. Tools are prefixed with `ctl_`.
+
+**When configuring `~/.cursor/mcp.json` globally** (any workspace), `uv run ctl-mcp` without a project path fails (`program not found`). Pin the project:
+
+```json
+"game-controller": {
+  "command": "C:\\Program Files\\Python311\\Scripts\\uv.exe",
+  "args": [
+    "run",
+    "--project",
+    "C:\\Users\\Svyat\\Desktop\\RE\\GameController",
+    "ctl-mcp"
+  ]
+}
+```
+
+Or point at the venv entrypoint after `uv sync`:
+
+```json
+"command": "C:\\Users\\Svyat\\Desktop\\RE\\GameController\\.venv\\Scripts\\ctl-mcp.exe",
+"args": []
+```
+
+Do **not** run `mcp_server.py` with system Python — dependencies live in this repo’s `.venv` only.
+
+`ctl_stop` / daemon start are intentionally **not** exposed over MCP (human-only per below).
+
 ## Usage (from game repo root)
 
 - `just --list` - all recipes; controller client commands are under **`ctl::`**

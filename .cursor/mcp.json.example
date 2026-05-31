@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "game-controller": {
+      "command": "powershell.exe",
+      "args": [
+        "-NoLogo",
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}/scripts/ctl-mcp.ps1"
+      ]
+    }
+  }
+}
