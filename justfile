@@ -59,20 +59,22 @@ copy-logs:
 copy-logs-run run_id:
     {{ctl}} copy-logs --run-id {{run_id}} -p "{{game_exe}}"
 
-launch server_ip="":
-    {{ctl}} launch -p "{{game_exe}}"{{ if server_ip != '' { ' -s ' + server_ip } else { '' } }}
+# Pass ctl flags through, e.g. just launch --env TEST_VAR=kek  or  just launch -s 1.2.3.4
+# Empty -s (just launch -s "") means no server IP override (API / defaults).
+launch *flags:
+    {{ctl}} launch -p "{{game_exe}}" {{flags}}
 
-relaunch server_ip="":
+relaunch *flags:
     {{ctl}} kill
-    {{ctl}} launch -p "{{game_exe}}"{{ if server_ip != '' { ' -s ' + server_ip } else { '' } }}
+    {{ctl}} launch -p "{{game_exe}}" {{flags}}
 
 # Local entry (127.0.0.1) + real auth for transparent proxy (just server::proxy).
-launch-offline server_ip="127.0.0.1":
-    {{ctl}} launch -p "{{game_exe}}" -s "{{server_ip}}" --proxy
+launch-offline *flags:
+    {{ctl}} launch -p "{{game_exe}}" --proxy {{flags}}
 
 # Python ProudNet emulator (just server::ensure); localhost launch token.
-launch-dummy server_ip="127.0.0.1":
-    {{ctl}} launch -p "{{game_exe}}" -s "{{server_ip}}" --offline
+launch-dummy *flags:
+    {{ctl}} launch -p "{{game_exe}}" --offline {{flags}}
 
 wait-menu:
     {{ctl}} wait-for-stage server_ready --timeout 120

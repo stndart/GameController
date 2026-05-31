@@ -1,7 +1,8 @@
 .vscode
 
-__pycache__
+**/__pycache__/**
 *.egg-info
 
 logs/
 ctl.yaml
+launch.yaml

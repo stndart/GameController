@@ -90,6 +90,7 @@ def ctl_wait_menu(timeout: float = 120.0) -> str:
 def ctl_launch(
     server_ip: str = "",
     game_exe: str = "",
+    env: str = "",
 ) -> str:
     """Clear shipping logs, fetch credentials, and start the game."""
     return _run_tool(
@@ -98,11 +99,16 @@ def ctl_launch(
         server_ip=server_ip or None,
         offline=False,
         proxy=False,
+        env=env or None,
     )
 
 
 @mcp.tool()
-def ctl_launch_offline(server_ip: str = "127.0.0.1", game_exe: str = "") -> str:
+def ctl_launch_offline(
+    server_ip: str = "127.0.0.1",
+    game_exe: str = "",
+    env: str = "",
+) -> str:
     """Clear logs and launch with local entry + real auth (proxy mode; use with server proxy)."""
     return _run_tool(
         launch,
@@ -110,11 +116,16 @@ def ctl_launch_offline(server_ip: str = "127.0.0.1", game_exe: str = "") -> str:
         server_ip=server_ip,
         offline=False,
         proxy=True,
+        env=env or None,
     )
 
 
 @mcp.tool()
-def ctl_launch_dummy(server_ip: str = "127.0.0.1", game_exe: str = "") -> str:
+def ctl_launch_dummy(
+    server_ip: str = "127.0.0.1",
+    game_exe: str = "",
+    env: str = "",
+) -> str:
     """Clear logs and launch with offline localhost token (no API auth)."""
     return _run_tool(
         launch,
@@ -122,6 +133,7 @@ def ctl_launch_dummy(server_ip: str = "127.0.0.1", game_exe: str = "") -> str:
         server_ip=server_ip,
         offline=True,
         proxy=False,
+        env=env or None,
     )
 
 
@@ -138,7 +150,11 @@ def ctl_kill_all() -> str:
 
 
 @mcp.tool()
-def ctl_relaunch(server_ip: str = "", game_exe: str = "") -> str:
+def ctl_relaunch(
+    server_ip: str = "",
+    game_exe: str = "",
+    env: str = "",
+) -> str:
     """Kill current session then launch (clear-logs + spawn)."""
     try:
         kill_result = kill(all=False)
@@ -147,6 +163,7 @@ def ctl_relaunch(server_ip: str = "", game_exe: str = "") -> str:
             server_ip=server_ip or None,
             offline=False,
             proxy=False,
+            env=env or None,
         )
         return _format_result({"kill": kill_result, "launch": launch_result})
     except DaemonNotRunningError as e:

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 import urllib.error
@@ -39,6 +40,8 @@ class Settings(BaseSettings):
 
     LAUNCHER_ROOT: Path = Path(r"C:\Users\Svyat\AppData\Local\Programs\fa-emu-launcher")
     GAME_PATH: Path = Path(r"G:\Games\FA\FA-EMU\Shipping\GAME.exe")
+    # Directory containing build/msvc-x86-*/bin/TheGame.dll (default: parent of GameController).
+    DLL_BUILD_ROOT: Path | None = None
     API_BASE: str = "https://inx.fa-emu.com/api/v1"
     DEFAULT_SERVER_IP: str = "137.184.201.52"
 
@@ -66,6 +69,11 @@ class Settings(BaseSettings):
             init_settings,
             YamlConfigSettingsSource(settings_cls),
         )
+
+    def dll_build_root(self) -> Path:
+        if self.DLL_BUILD_ROOT is not None:
+            return Path(self.DLL_BUILD_ROOT)
+        return REPO_ROOT.parent
 
     def save(
         self,
@@ -201,10 +209,30 @@ def write_config(
     settings.get_config_path().write_text("\r\n".join(lines) + "\r\n", encoding="utf-8")
 
 
+def parse_env_string(spec: str) -> dict[str, str]:
+    """Parse ``name=value;name2=value2`` into a dict for subprocess env."""
+    if not spec.strip():
+        return {}
+    result: dict[str, str] = {}
+    for part in spec.split(";"):
+        part = part.strip()
+        if not part:
+            continue
+        if "=" not in part:
+            raise ValueError(f"invalid env entry (expected name=value): {part!r}")
+        name, _, value = part.partition("=")
+        name = name.strip()
+        if not name:
+            raise ValueError(f"invalid env entry (empty name): {part!r}")
+        result[name] = value
+    return result
+
+
 def spawn_game_launcher(
     settings: Settings,
     launch_token: str,
     kernel_check_disable: bool,
+    extra_env: dict[str, str] | None = None,
 ) -> subprocess.Popen:
     args = [str(settings.get_game_launcher_exe()), launch_token]
     if kernel_check_disable:
@@ -214,11 +242,15 @@ def spawn_game_launcher(
     if sys.platform == "win32":
         creationflags = subprocess.DETACHED_PROCESS | subprocess.CREATE_NO_WINDOW
 
-    return subprocess.Popen(
-        args,
-        cwd=str(settings.LAUNCHER_ROOT),
-        creationflags=creationflags,
-    )
+    popen_kwargs: dict[str, Any] = {
+        "args": args,
+        "cwd": str(settings.LAUNCHER_ROOT),
+        "creationflags": creationflags,
+    }
+    if extra_env:
+        popen_kwargs["env"] = {**os.environ, **extra_env}
+
+    return subprocess.Popen(**popen_kwargs)
 
 
 def resolve_server_ip(
@@ -229,8 +261,8 @@ def resolve_server_ip(
     offline: bool = False,
     proxy: bool = False,
 ) -> str:
-    if cli_server_ip is not None:
-        return cli_server_ip
+    if cli_server_ip is not None and cli_server_ip.strip() != "":
+        return cli_server_ip.strip()
     if offline or proxy:
         return "127.0.0.1"
     api_ip = launch_data.get("server_ip")
@@ -279,6 +311,12 @@ def main() -> int:
         action="store_true",
         help="Local ProudNet entry (127.0.0.1) with real launch token (transparent proxy)",
     )
+    parser.add_argument(
+        "--env",
+        default=None,
+        metavar="VAR=val;VAR2=val2",
+        help="Extra environment variables for GameLauncher (semicolon-separated).",
+    )
     args = parser.parse_args()
 
     if (args.username is None) != (args.password is None):
@@ -321,8 +359,11 @@ def main() -> int:
 
         write_config(settings, game_exe, launch_token, server_ip)
         write_server_override(game_exe, server_ip)
-        proc = spawn_game_launcher(settings, launch_token, kernel_check_disable)
-    except (RuntimeError, urllib.error.URLError, OSError) as e:
+        extra_env = parse_env_string(args.env) if args.env else None
+        proc = spawn_game_launcher(
+            settings, launch_token, kernel_check_disable, extra_env=extra_env
+        )
+    except (RuntimeError, urllib.error.URLError, OSError, ValueError) as e:
         print(f"error: {e}", file=sys.stderr)
         return 1
 

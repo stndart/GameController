@@ -109,6 +109,12 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="127.0.0.1 entry with real launch token (use with server::proxy).",
     )
+    launch_p.add_argument(
+        "--env",
+        default=None,
+        metavar="VAR=val;VAR2=val2",
+        help="Extra environment variables for GameLauncher (semicolon-separated).",
+    )
 
     kill_p = sub.add_parser("kill", help="Force-kill game processes.")
     kill_p.add_argument(
@@ -180,6 +186,7 @@ def _handle_launch(args: argparse.Namespace) -> int:
             server_ip=args.server_ip,
             offline=args.offline,
             proxy=args.proxy,
+            env=args.env,
         )
     )
     return 0

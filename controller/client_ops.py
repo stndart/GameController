@@ -22,6 +22,7 @@ from commands import (
 )
 from config import Settings
 from launch_game import Settings as LaunchSettings
+from launch_game import parse_env_string
 
 
 def default_game_exe(game_exe: Path | str | None = None) -> Path:
@@ -60,7 +61,11 @@ def launch(
     server_ip: str | None = None,
     offline: bool = False,
     proxy: bool = False,
+    env: str | dict[str, str] | None = None,
 ) -> dict:
+    parsed_env: dict[str, str] = {}
+    if env:
+        parsed_env = parse_env_string(env) if isinstance(env, str) else env
     game = str(default_game_exe(game_exe))
     rpc(ClearLogsCommand(game_exe=game))
     return rpc(
@@ -69,6 +74,7 @@ def launch(
             server_ip=server_ip,
             offline=offline,
             proxy=proxy,
+            env=parsed_env,
         ),
         timeout=130.0,
     )

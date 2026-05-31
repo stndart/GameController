@@ -61,8 +61,9 @@ When this tree is a submodule, parent `justfile` should `mod ctl` the same way.
 - `clear-logs` - deletes shipping log files next to GAME.exe (per `game_log_files` in ctl.yaml)
 - `copy-logs` - copies shipping logs into `logs/runs/<run_id>/` (names from `game_log_files`)
 - `copy-logs-run <run_id>` - copies logs from game directory with specified run_id.
-- `launch [server_ip=]` - clear-logs, then exchange credentials and start the game. `<server_ip>` is overriden if not empty.
-- `launch-offline [server_ip=]` - clear-logs, then start the game without fetching credentials (auth disabled).
+- `launch [server_ip=] [env=]` - clear-logs, then exchange credentials and start the game. `<server_ip>` is overriden if not empty. `env` is semicolon-separated `name=value` pairs passed to GameLauncher (e.g. `env="FOO=1;BAR=two"`).
+- `launch-offline [server_ip=] [env=]` - clear-logs, then start the game without fetching credentials (auth disabled).
+- `relaunch`, `launch-dummy` - same optional `env=` as `launch`.
 - `wait-menu` - blocks until game stage `server_ready` (alias for `wait-stage server_ready`)
 - `wait-stage <stage> [timeout=]` - blocks until specific game stage. timeout=120 by default.
 - `commands` - list handler commands the game supports (handler pipe)

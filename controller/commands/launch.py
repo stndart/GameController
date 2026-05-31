@@ -20,6 +20,7 @@ from launch_game import (
     write_config,
     write_server_override,
 )
+from pydantic import Field
 
 from .common import Command
 
@@ -34,6 +35,7 @@ class LaunchCommand(Command):
     server_ip: str | None = None
     offline: bool = False
     proxy: bool = False
+    env: dict[str, str] = Field(default_factory=dict)
 
     def invoke(self, settings: Settings, state: GameState) -> str:
         if state._running:
@@ -72,6 +74,7 @@ class LaunchCommand(Command):
                 launch_settings,
                 launch_token,
                 kernel_check_disable,
+                extra_env=self.env or None,
             )
         except (RuntimeError, urllib.error.URLError, OSError) as e:
             raise LaunchCommandError(f"Failed to launch game: {e}") from e

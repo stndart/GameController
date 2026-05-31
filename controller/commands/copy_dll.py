@@ -14,17 +14,23 @@ class CopyDllCommandError(CommandError):
     pass
 
 
-def dll_path_for_config(dll_config: str) -> Path:
+def dll_path_for_config(dll_config: str, *, build_root: Path | None = None) -> Path:
     build_dir = (
         dll_config if dll_config.startswith("msvc-x86-") else f"msvc-x86-{dll_config}"
     )
-    return REPO_ROOT.parent / "build" / build_dir / "bin" / "TheGame.dll"
+    root = build_root if build_root is not None else REPO_ROOT.parent
+    return root / "build" / build_dir / "bin" / "TheGame.dll"
 
 
-def resolve_dll_source(dll_config: str, dll_source: str | None) -> Path:
+def resolve_dll_source(
+    dll_config: str,
+    dll_source: str | None,
+    *,
+    build_root: Path | None = None,
+) -> Path:
     if dll_source:
         return Path(dll_source).resolve()
-    return dll_path_for_config(dll_config).resolve()
+    return dll_path_for_config(dll_config, build_root=build_root).resolve()
 
 
 class CopyDllCommand(Command):
@@ -42,7 +48,11 @@ class CopyDllCommand(Command):
         if not game_exe.is_file():
             raise CopyDllCommandError(f"GAME.exe not found: {game_exe}")
 
-        source = resolve_dll_source(self.dll_config, self.dll_source)
+        source = resolve_dll_source(
+            self.dll_config,
+            self.dll_source,
+            build_root=launch_settings.dll_build_root(),
+        )
         if not source.is_file():
             raise CopyDllCommandError(
                 f"TheGame.dll not found for {self.dll_config}: {source}. "
