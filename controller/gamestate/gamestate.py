@@ -30,7 +30,7 @@ class SessionPhase(StrEnum):
     ended = auto()
 
 
-# Session steps that abort wait-for-stage (not game_state phases).
+# Session steps that abort wait-for-stage (not game_stage phases).
 TERMINAL_STAGES: frozenset[str] = frozenset({"diag_disconnected"})
 
 
@@ -40,7 +40,7 @@ class Progress:
     started_at: str | None = None
     ended_at: str | None = None
     events_count: int = 0
-    game_states: list[str] = field(default_factory=list)
+    game_stages: list[str] = field(default_factory=list)
     steps: list[dict[str, str]] = field(default_factory=list)
     launcher_pid: int | None = None
 
@@ -50,7 +50,7 @@ class Progress:
             "started_at": self.started_at,
             "ended_at": self.ended_at,
             "events_count": self.events_count,
-            "game_states": list(self.game_states),
+            "game_stages": list(self.game_stages),
             "steps": list(self.steps),
             "launcher_pid": self.launcher_pid,
         }
@@ -84,9 +84,9 @@ class GameState:
 
     @property
     def current_stage(self) -> str | None:
-        if not self.progress.game_states:
+        if not self.progress.game_stages:
             return None
-        return self.progress.game_states[-1]
+        return self.progress.game_stages[-1]
 
     def record_step(self, name: str) -> None:
         self.progress.steps.append({"name": name, "at": _utc_now()})
@@ -140,16 +140,16 @@ class GameState:
                 self._stage_cond.notify_all()
             print(f"[daemon] game_pid={pid} run_id={self.run_id}")
 
-        if event.get("type") == "game_state":
-            self._on_stage(str(event.get("phase", "")))
+        if event.get("type") == "game_stage":
+            self._on_stage(str(event.get("stage", "")))
 
     def _on_stage(self, phase: str) -> None:
         if not phase:
             return
         with self._stage_cond:
-            if self.progress.game_states and self.progress.game_states[-1] == phase:
+            if self.progress.game_stages and self.progress.game_stages[-1] == phase:
                 return
-            self.progress.game_states.append(phase)
+            self.progress.game_stages.append(phase)
             self.record_step(f"stage:{phase}")
             print(f"[stage] {phase} run_id={self.run_id}")
             self._stage_cond.notify_all()
@@ -168,12 +168,12 @@ class GameState:
             terminal = self._terminal_stage()
             if terminal is not None:
                 raise TerminalStageError(terminal)
-            if stage in self.progress.game_states:
+            if stage in self.progress.game_stages:
                 return True
             if timeout <= 0:
                 return False
             deadline = monotonic() + timeout
-            while stage not in self.progress.game_states:
+            while stage not in self.progress.game_stages:
                 terminal = self._terminal_stage()
                 if terminal is not None:
                     raise TerminalStageError(terminal)
@@ -273,7 +273,7 @@ class GameState:
             "ended_at": self.progress.ended_at,
             "events": self.progress.events_count,
             "events_file": str(events_path(self.run_id).resolve()),
-            "game_states": list(self.progress.game_states),
+            "game_stages": list(self.progress.game_stages),
             "progress": self.progress.to_dict(),
             "launcher_pid": self.progress.launcher_pid,
             "game_pid": self.game_pid,

@@ -86,7 +86,7 @@ def build_parser() -> argparse.ArgumentParser:
         "wait-for-stage",
         help="Block until game reaches a diagnostics stage (or timeout).",
     )
-    wait_p.add_argument("stage", help="game_state phase name, e.g. server_ready")
+    wait_p.add_argument("stage", help="game_stage phase name, e.g. server_ready")
     wait_p.add_argument(
         "--timeout",
         type=float,
@@ -284,4 +284,3 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

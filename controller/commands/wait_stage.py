@@ -1,4 +1,4 @@
-"""Block until a game_state stage is observed (or timeout)."""
+"""Block until a game_stage stage is observed (or timeout)."""
 
 from __future__ import annotations
 
@@ -34,6 +34,6 @@ class WaitForStageCommand(Command):
                 "reached": reached,
                 "stage": self.stage,
                 "current_stage": state.current_stage,
-                "game_states": list(state.progress.game_states),
+                "game_stages": list(state.progress.game_stages),
             }
         )

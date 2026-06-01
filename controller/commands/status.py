@@ -29,7 +29,7 @@ class StatusCommand(Command):
                 "game_pid": state.game_pid,
                 "launcher_pid": state.progress.launcher_pid,
                 "current_stage": state.current_stage,
-                "game_states": list(state.progress.game_states),
+                "game_stages": list(state.progress.game_stages),
                 "progress": state.progress.to_dict(),
                 "events_count": state.progress.events_count,
                 "run_dir": run_dir,

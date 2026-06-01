@@ -5,4 +5,4 @@ handler_response_timeout: 30.0
 game_log_files:
   - [logs.txt, game_logs.txt]
   - [netlogs.txt, game_netlogs.txt]
-  - [proudnet_tcp.txt, game_proudnet_tcp.txt]
+  - [proudlogs.txt, game_proudlogs.txt]

@@ -19,6 +19,6 @@ class ListStagesCommand(Command):
         return dumps(
             {
                 "known": list(KNOWN_STAGES),
-                "seen": list(state.progress.game_states),
+                "seen": list(state.progress.game_stages),
             }
         )

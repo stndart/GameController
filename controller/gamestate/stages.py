@@ -1,8 +1,8 @@
-"""Known game_state phases from TheGame.dll diagnostics (keep in sync with src/hooks)."""
+"""Known game_stage phases from TheGame.dll diagnostics (keep in sync with src/hooks)."""
 
 from __future__ import annotations
 
-# Order matches typical boot / navigation flow (src/hooks/game_state.cpp).
+# Order matches typical boot / navigation flow (src/hooks/game_stage.cpp).
 KNOWN_STAGES: tuple[str, ...] = (
     "started",
     "intro",

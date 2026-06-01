@@ -31,7 +31,7 @@ gsudo ctl -d # or `just daemon`
 gsudo ctl -d --background # or `just daemon-bg`
 ```
 
-Daemon prints `[stage] …` lines when the game reports new `game_state` phases.
+Daemon prints `[stage] …` lines when the game reports new `game_stage` phases.
 
 ## Typical workflow
 
@@ -55,7 +55,7 @@ Artifacts land in `logs/runs/<run_id>/`:
 | File                                 | Content                                |
 | ------------------------------------ | -------------------------------------- |
 | `events.jsonl`                       | NDJSON diagnostics events from the DLL |
-| `meta.json`                          | Run metadata, `game_states`, progress  |
+| `meta.json`                          | Run metadata, `game_stages`, progress  |
 | `game_*.txt`                         | Copied from shipping dir (`copy-logs`, per `game_log_files`) |
 
 
@@ -63,7 +63,7 @@ Artifacts land in `logs/runs/<run_id>/`:
 
 ## Stages
 
-Known phases (see `stages.py`, keep in sync with `src/hooks/game_state.cpp`):
+Known phases (see `stages.py`, keep in sync with `src/hooks/game_stage.cpp`):
 
 
 | Stage                  | When                       |
