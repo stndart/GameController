@@ -16,9 +16,9 @@ from launch_game import (
     fetch_launch_credentials,
     load_account_token,
     resolve_server_ip,
+    server_override_env,
     spawn_game_launcher,
     write_config,
-    write_server_override,
 )
 from pydantic import Field
 
@@ -69,12 +69,12 @@ class LaunchCommand(Command):
             kernel_check_disable = launch_data.get("kernel_check_disable") is True
 
             write_config(launch_settings, game_exe, launch_token, server_ip)
-            write_server_override(game_exe, server_ip)
+            extra_env = {**server_override_env(server_ip), **(self.env or {})}
             proc = spawn_game_launcher(
                 launch_settings,
                 launch_token,
                 kernel_check_disable,
-                extra_env=self.env or None,
+                extra_env=extra_env,
             )
         except (RuntimeError, urllib.error.URLError, OSError) as e:
             raise LaunchCommandError(f"Failed to launch game: {e}") from e

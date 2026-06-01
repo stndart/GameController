@@ -182,13 +182,12 @@ def fetch_launch_credentials(settings: Settings, account_token: str) -> dict[str
     return data
 
 
-def server_override_path(game_path: Path) -> Path:
-    """Sidecar read by TheGame.dll; GAME.exe ignores launcher config.ini for IP."""
-    return game_path.parent / "TheGame.server_ip"
-
-
-def write_server_override(game_path: Path, server_ip: str) -> None:
-    server_override_path(game_path).write_text(server_ip + "\n", encoding="ascii")
+def server_override_env(server_ip: str) -> dict[str, str]:
+    """Env vars read by TheGame.dll (Readme.md: THEGAME_SERVER_*)."""
+    return {
+        "THEGAME_SERVER_OVERRIDE": "ON",
+        "THEGAME_SERVER_IP": server_ip,
+    }
 
 
 def write_config(
@@ -358,8 +357,8 @@ def main() -> int:
         kernel_check_disable = launch_data.get("kernel_check_disable") is True
 
         write_config(settings, game_exe, launch_token, server_ip)
-        write_server_override(game_exe, server_ip)
-        extra_env = parse_env_string(args.env) if args.env else None
+        extra_env = parse_env_string(args.env) if args.env else {}
+        extra_env = {**server_override_env(server_ip), **extra_env}
         proc = spawn_game_launcher(
             settings, launch_token, kernel_check_disable, extra_env=extra_env
         )
