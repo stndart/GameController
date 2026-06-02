@@ -31,7 +31,7 @@ gsudo ctl -d # or `just daemon`
 gsudo ctl -d --background # or `just daemon-bg`
 ```
 
-Daemon prints `[stage] …` lines when the game reports new `game_stage` phases.
+Daemon prints `[stage] ...` lines when the game reports new `game_stage` phases.
 
 ## Typical workflow
 
