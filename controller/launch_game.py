@@ -209,11 +209,16 @@ def write_config(
 
 
 def parse_env_string(spec: str) -> dict[str, str]:
-    """Parse ``name=value;name2=value2`` into a dict for subprocess env."""
+    """Parse ``name=value;name2=value2`` (or comma-separated) into env dict.
+
+    Commas are accepted because PowerShell treats ``;`` inside double-quoted
+    ``--env "A=1;B=2"`` as a statement separator before the value reaches ctl.
+    """
     if not spec.strip():
         return {}
     result: dict[str, str] = {}
-    for part in spec.split(";"):
+    normalized = spec.replace(",", ";")
+    for part in normalized.split(";"):
         part = part.strip()
         if not part:
             continue
