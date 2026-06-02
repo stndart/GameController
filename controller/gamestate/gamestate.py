@@ -106,6 +106,7 @@ class GameState:
         self.record_step("launch")
 
         self.run_dir_path = run_dir(self.run_id)
+        write_last_run(self.run_id, self.run_dir_path)
         events = events_path(self.run_id)
         self.events_file = events.open("w", encoding="utf-8")
 

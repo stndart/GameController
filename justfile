@@ -82,11 +82,18 @@ wait-menu:
 run-e2e-lobby:
     just ping
     just copy-dll
-    just launch --env "DISABLE_AUTONAV=0"
+    just launch
     just wait-stage shard_select 120
-    just send nav_goto_lobby
+    just wait-s 8
+    just send nav_pass_shard_select
+    just wait-s 15
     just wait-stage lobby 120
     just copy-logs
+
+wait-s delay="5":
+    #!python
+    import time
+    time.sleep(float("{{delay}}"))
 
 wait-stage stage timeout="120":
     {{ctl}} wait-for-stage {{stage}} --timeout {{timeout}}

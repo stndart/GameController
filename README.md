@@ -86,7 +86,7 @@ Known phases (see `stages.py`, keep in sync with `src/hooks/game_stage.cpp`):
 ctl stages                       # catalog + stages seen this session
 ctl wait-for-stage shard_select  # blocks this RPC until stage or timeout
 just wait-menu                   # alias for wait-stage shard_select
-just run-e2e-lobby               # online launch → shard_select → nav_goto_lobby → lobby
+just run-e2e-lobby               # online launch → shard_select → nav_pass_shard_select → lobby
 ```
 
 `wait-for-stage` only blocks the **client connection** handling that request; other commands can be issued from another terminal if needed (the daemon serves one RPC at a time per connection).
