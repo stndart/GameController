@@ -38,7 +38,7 @@ Daemon prints `[stage] …` lines when the game reports new `game_stage` phases.
 ```powershell
 just copy-dll
 just launch # or `just launch-offline`
-just wait-menu          # ctl wait-for-stage server_ready --timeout 120
+just wait-menu          # ctl wait-for-stage shard_select --timeout 120
 just kill
 just copy-logs
 ```
@@ -72,8 +72,7 @@ Known phases (see `stages.py`, keep in sync with `src/hooks/game_stage.cpp`):
 | `intro`                | CGameIntro onPreProcess    |
 | `login`                | CGameLogin onPreProcess    |
 | `connecting_to_server` | TCPSocket::Connect :7000   |
-| `shard_choice`         | Shard selection UI         |
-| `server_ready`         | Server/shard picker finished (`CGameServer` onEnter done) |
+| `shard_select`         | Shard picker UI (`CGameServer` onPreProcess end @ `0x4347CC`) |
 | `lobby`                | Main menu (chat, Quick/Custom match) |
 | `room_list`            | Custom match room list     |
 | `party_room`           | Party / matchmaking room   |
@@ -85,8 +84,9 @@ Known phases (see `stages.py`, keep in sync with `src/hooks/game_stage.cpp`):
 
 ```powershell
 ctl stages                       # catalog + stages seen this session
-ctl wait-for-stage server_ready  # blocks this RPC until stage or timeout
-just wait-menu                   # same as above (recipe alias)
+ctl wait-for-stage shard_select  # blocks this RPC until stage or timeout
+just wait-menu                   # alias for wait-stage shard_select
+just run-e2e-lobby               # online launch → shard_select → nav_goto_lobby → lobby
 ```
 
 `wait-for-stage` only blocks the **client connection** handling that request; other commands can be issued from another terminal if needed (the daemon serves one RPC at a time per connection).

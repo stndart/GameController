@@ -77,7 +77,16 @@ launch-dummy *flags:
     {{ctl}} launch -p "{{game_exe}}" --offline {{flags}}
 
 wait-menu:
-    {{ctl}} wait-for-stage server_ready --timeout 120
+    {{ctl}} wait-for-stage shard_select --timeout 120
+
+run-e2e-lobby:
+    just ping
+    just copy-dll
+    just launch --env "DISABLE_AUTONAV=0"
+    just wait-stage shard_select 120
+    just send nav_goto_lobby
+    just wait-stage lobby 120
+    just copy-logs
 
 wait-stage stage timeout="120":
     {{ctl}} wait-for-stage {{stage}} --timeout {{timeout}}

@@ -76,14 +76,14 @@ def ctl_stages() -> str:
 
 @mcp.tool()
 def ctl_wait_stage(stage: str, timeout: float = 120.0) -> str:
-    """Block until the game reaches a diagnostics stage (e.g. server_ready, shard_choice)."""
+    """Block until the game reaches a diagnostics stage (e.g. shard_select, lobby)."""
     return _run_tool(wait_for_stage, stage=stage, timeout=timeout)
 
 
 @mcp.tool()
 def ctl_wait_menu(timeout: float = 120.0) -> str:
-    """Block until game stage server_ready (alias for ctl_wait_stage)."""
-    return _run_tool(wait_for_stage, stage="server_ready", timeout=timeout)
+    """Block until game stage shard_select (alias for ctl_wait_stage)."""
+    return _run_tool(wait_for_stage, stage="shard_select", timeout=timeout)
 
 
 @mcp.tool()
