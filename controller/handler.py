@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from threading import Lock, Thread
 from time import sleep
 
@@ -34,6 +35,10 @@ class HandlerPipeSession:
         self._connected = False
         self._running = False
         self._thread: Thread | None = None
+        self._on_disconnect: Callable[[], None] | None = None
+
+    def set_on_disconnect(self, callback: Callable[[], None] | None) -> None:
+        self._on_disconnect = callback
 
     def start(self) -> None:
         if self._running:
@@ -91,6 +96,14 @@ class HandlerPipeSession:
         self._connected = False
         self._pipe.force_disconnect()
 
+    def _notify_disconnect(self) -> None:
+        if self._on_disconnect is None:
+            return
+        try:
+            self._on_disconnect()
+        except Exception as e:
+            print(f"[daemon] handler on_disconnect error: {e}")
+
     def _thread_func(self) -> None:
         while self._running:
             try:
@@ -108,6 +121,10 @@ class HandlerPipeSession:
                     with self._lock:
                         if not self._connected:
                             break
+                    if not self._pipe.peer_connected():
+                        with self._lock:
+                            self._mark_disconnected_locked()
+                        break
                     sleep(0.1)
 
             except Exception as e:
@@ -119,3 +136,4 @@ class HandlerPipeSession:
                 self._pipe.prepare_for_accept()
                 if was_connected:
                     print(f"[daemon] handler disconnected pipe={self._pipe_name}")
+                    self._notify_disconnect()

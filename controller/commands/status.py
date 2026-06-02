@@ -31,6 +31,8 @@ class StatusCommand(Command):
                 "current_stage": state.current_stage,
                 "game_stages": list(state.progress.game_stages),
                 "progress": state.progress.to_dict(),
+                "exit_reason": state.progress.exit_reason,
+                "session_active": state._running,
                 "events_count": state.progress.events_count,
                 "run_dir": run_dir,
                 "events_file": events_file,

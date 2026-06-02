@@ -66,6 +66,19 @@ class PipeMixin:
         data = data.removesuffix(separator) + separator
         win32file.WriteFile(self.pipe.handle, data)
 
+    def peer_connected(self) -> bool:
+        """Return False when the connected client has closed the pipe."""
+        try:
+            win32pipe.PeekNamedPipe(self.pipe.handle, 0)
+            return True
+        except win32pipe.error as e:
+            if e.winerror in (
+                ERROR_BROKEN_PIPE,
+                ERROR_PIPE_NOT_CONNECTED,
+            ):
+                return False
+            raise
+
     def read_message(self, timeout: float = 1, separator: bytes = b"\n") -> str:
         ts = monotonic()
         while monotonic() - ts < timeout or timeout < 0:

@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import StrEnum, auto
 from pathlib import Path
-from threading import Condition, Thread
+from threading import Condition, Lock, Thread, current_thread
 from time import monotonic, sleep
 from typing import TYPE_CHECKING, Any, TextIO
 
@@ -31,7 +31,16 @@ class SessionPhase(StrEnum):
 
 
 # Session steps that abort wait-for-stage (not game_stage phases).
-TERMINAL_STAGES: frozenset[str] = frozenset({"diag_disconnected"})
+TERMINAL_STAGES: frozenset[str] = frozenset(
+    {"diag_disconnected", "handler_disconnected"}
+)
+
+_TERMINAL_PHASES: frozenset[SessionPhase] = frozenset(
+    {
+        SessionPhase.diag_disconnected,
+        SessionPhase.ended,
+    }
+)
 
 
 @dataclass
@@ -43,6 +52,7 @@ class Progress:
     game_stages: list[str] = field(default_factory=list)
     steps: list[dict[str, str]] = field(default_factory=list)
     launcher_pid: int | None = None
+    exit_reason: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -53,6 +63,7 @@ class Progress:
             "game_stages": list(self.game_stages),
             "steps": list(self.steps),
             "launcher_pid": self.launcher_pid,
+            "exit_reason": self.exit_reason,
         }
 
 
@@ -80,7 +91,12 @@ class GameState:
         self.handler = handler
         self.progress = Progress()
         self._stage_cond = Condition()
+        self._finalize_lock = Lock()
+        self._finalized = False
+        self._meta_game_pid: int | None = None
         self.diag_thread = Thread(target=self.diag_thread_func, daemon=True)
+        if handler is not None:
+            handler.set_on_disconnect(self._on_pipe_disconnected)
 
     @property
     def current_stage(self) -> str | None:
@@ -95,6 +111,8 @@ class GameState:
         if self._running:
             raise RuntimeError("session already active")
 
+        self._finalized = False
+        self._meta_game_pid = None
         self._running = True
         self.run_id = new_run_id()
         self.game_pid = None
@@ -155,9 +173,13 @@ class GameState:
             print(f"[stage] {phase} run_id={self.run_id}")
             self._stage_cond.notify_all()
 
+    def _on_pipe_disconnected(self) -> None:
+        if self._running and not self._finalized:
+            self._finalize_session(exit_reason="handler_disconnected")
+
     def _terminal_stage(self) -> str | None:
-        if self.progress.phase == SessionPhase.diag_disconnected:
-            return "diag_disconnected"
+        if self.progress.phase in _TERMINAL_PHASES:
+            return self.progress.phase.value
         for step in reversed(self.progress.steps):
             name = step.get("name")
             if name in TERMINAL_STAGES:
@@ -230,26 +252,56 @@ class GameState:
         except Exception:
             pass
 
-        with self._stage_cond:
-            self.progress.phase = SessionPhase.diag_disconnected
-            self.record_step("diag_disconnected")
-            self._stage_cond.notify_all()
-        print(f"[stage] diag_disconnected run_id={self.run_id}")
+        self._finalize_session(exit_reason="diag_disconnected")
 
-        if self.handler is not None:
-            self.handler.reset_session()
+    def _finalize_session(self, *, exit_reason: str) -> None:
+        """Idempotent teardown when a game pipe disconnects or ctl kills the session."""
+        with self._finalize_lock:
+            if self._finalized:
+                return
+            self._finalized = True
 
-    def end_session(self) -> None:
-        """Stop diagnostics reader, finalize meta; keep run_id for copy_logs."""
         self._running = False
-        self.game_pid = None
+        self.progress.exit_reason = exit_reason
 
-        if self.diag_thread.is_alive():
+        try:
+            self.diag_pipe.force_disconnect()
+        except Exception:
+            pass
+
+        with self._stage_cond:
+            if exit_reason == "diag_disconnected":
+                if self.progress.phase != SessionPhase.diag_disconnected:
+                    self.progress.phase = SessionPhase.diag_disconnected
+                    self.record_step("diag_disconnected")
+            elif exit_reason == "handler_disconnected":
+                self.record_step("handler_disconnected")
+            self.record_step(f"exit:{exit_reason}")
+            self._stage_cond.notify_all()
+
+        if exit_reason == "diag_disconnected":
+            print(f"[stage] diag_disconnected run_id={self.run_id}")
+        elif exit_reason == "handler_disconnected":
+            print(f"[stage] handler_disconnected run_id={self.run_id}")
+
+        current = current_thread()
+        if (
+            self.diag_thread is not None
+            and self.diag_thread.is_alive()
+            and current is not self.diag_thread
+        ):
             self.diag_thread.join(timeout=5.0)
 
-        self.diag_pipe.prepare_for_accept()
+        try:
+            self.diag_pipe.prepare_for_accept()
+        except Exception:
+            pass
+
         if self.handler is not None:
             self.handler.reset_session()
+
+        self._meta_game_pid = self.game_pid
+        self.game_pid = None
 
         if self.events_file is not None:
             self.events_file.close()
@@ -264,6 +316,10 @@ class GameState:
         with self._stage_cond:
             self._stage_cond.notify_all()
 
+    def end_session(self) -> None:
+        """Stop diagnostics reader, finalize meta; keep run_id for copy_logs."""
+        self._finalize_session(exit_reason="kill")
+
     def _write_meta(self) -> None:
         if not self.run_id:
             return
@@ -277,7 +333,8 @@ class GameState:
             "game_stages": list(self.progress.game_stages),
             "progress": self.progress.to_dict(),
             "launcher_pid": self.progress.launcher_pid,
-            "game_pid": self.game_pid,
+            "game_pid": self._meta_game_pid,
+            "exit_reason": self.progress.exit_reason,
         }
         meta_path(self.run_id).write_text(
             json.dumps(meta, indent=2) + "\n", encoding="utf-8"
