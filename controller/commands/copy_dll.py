@@ -61,4 +61,12 @@ class CopyDllCommand(Command):
 
         target = game_exe.with_name(source.name)
         shutil.copy2(source, target)
-        return dumps({"source": str(source), "target": str(target)})
+
+        copied: dict[str, str] = {"dll": str(target)}
+        proud_db = REPO_ROOT / "data" / "proud_db.json"
+        if proud_db.is_file():
+            proud_target = game_exe.with_name("proud_db.json")
+            shutil.copy2(proud_db, proud_target)
+            copied["proud_db"] = str(proud_target)
+
+        return dumps({"source": str(source), "target": str(target), **copied})
