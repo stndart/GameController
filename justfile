@@ -4,8 +4,7 @@
 #   just daemon-bg
 # From repo root (parent justfile has `mod ctl`):
 #   just ctl::ping
-#   just ctl::run-session-offline
-# (`just ping` at root is an alias to ctl::ping)
+#   just ctl::launch
 
 set windows-shell := ["powershell.exe", "-NoLogo", "-Command"]
 
@@ -65,30 +64,21 @@ launch *flags:
     {{ctl}} launch -p "{{game_exe}}" {{flags}}
 
 relaunch *flags:
-    {{ctl}} kill
+    {{ctl}} copy-dll
     {{ctl}} launch -p "{{game_exe}}" {{flags}}
 
 # Local entry (127.0.0.1) + real auth for transparent proxy (just server::proxy).
 launch-offline *flags:
     {{ctl}} launch -p "{{game_exe}}" --proxy {{flags}}
 
-# Python ProudNet emulator (just server::ensure); localhost launch token.
-launch-dummy *flags:
-    {{ctl}} launch -p "{{game_exe}}" --offline {{flags}}
-
 wait-menu:
     {{ctl}} wait-for-stage shard_select --timeout 120
 
-run-e2e-lobby:
-    just ping
-    just copy-dll
+wait-lobby:
     just launch
     just wait-stage shard_select 120
-    just wait-s 8
     just send nav_pass_shard_select
-    just wait-s 15
-    just wait-stage lobby 120
-    just copy-logs
+    just wait-stage lobby 10
 
 wait-s delay="5":
     #!python
