@@ -1,7 +1,8 @@
 """
 MCP server exposing ctl client commands (requires elevated daemon: gsudo ctl -d).
 
-See .cursor/mcp.json (workspace) or AGENTS.md (global ~/.cursor/mcp.json with uv --project).
+Tool surface mirrors `just` recipes in the repo root justfile (see AGENTS.md).
+Daemon/stop are intentionally omitted.
 """
 
 from __future__ import annotations
@@ -19,10 +20,12 @@ from client_ops import (
     launch,
     ping,
     processes,
+    relaunch,
     send,
     stages,
     status,
     wait_for_stage,
+    wait_lobby,
 )
 from client_rpc import DaemonNotRunningError
 from mcp.server.fastmcp import FastMCP
@@ -32,7 +35,8 @@ mcp = FastMCP(
     instructions=(
         "FA-EMU game controller client. Requires the elevated ctl daemon "
         "(gsudo ctl -d or just daemon-bg). Does not start the daemon. "
-        "Game path defaults to launch.yaml GAME_PATH unless game_exe is set."
+        "Game path defaults to launch.yaml GAME_PATH unless game_exe is set. "
+        "MCP tools match `just` recipes in this repo (ctl_* names)."
     ),
 )
 
@@ -52,38 +56,66 @@ def _run_tool(fn: Callable[..., dict], /, **kwargs: Any) -> str:
 
 @mcp.tool()
 def ctl_ping() -> str:
-    """Check ctl daemon is running and elevated."""
+    """Check ctl daemon is running and elevated (`just ping`)."""
     return _run_tool(ping)
 
 
 @mcp.tool()
 def ctl_processes() -> str:
-    """List PIDs for GAME.exe and GameLauncher.exe."""
+    """List PIDs for GAME.exe and GameLauncher.exe (`just processes`)."""
     return _run_tool(processes)
 
 
 @mcp.tool()
 def ctl_status() -> str:
-    """Current session run_id, progress, and stages."""
+    """Current session run_id, progress, and stages (`just status`)."""
     return _run_tool(status)
 
 
 @mcp.tool()
 def ctl_stages() -> str:
-    """Known game stages and stages seen in the current session."""
+    """Known game stages and stages seen in the current session (`just stages`)."""
     return _run_tool(stages)
 
 
 @mcp.tool()
-def ctl_wait_stage(stage: str, timeout: float = 120.0) -> str:
-    """Block until the game reaches a diagnostics stage (e.g. shard_select, lobby)."""
-    return _run_tool(wait_for_stage, stage=stage, timeout=timeout)
+def ctl_kill() -> str:
+    """Kill the tracked GAME.exe / launcher session (`just kill`)."""
+    return _run_tool(kill, all=False)
 
 
 @mcp.tool()
-def ctl_wait_menu(timeout: float = 120.0) -> str:
-    """Block until game stage shard_select (alias for ctl_wait_stage)."""
-    return _run_tool(wait_for_stage, stage="shard_select", timeout=timeout)
+def ctl_kill_all() -> str:
+    """Kill all GAME.exe and GameLauncher.exe processes (`just kill-all`)."""
+    return _run_tool(kill, all=True)
+
+
+@mcp.tool()
+def ctl_copy_dll(dll_config: str = "debug", game_exe: str = "") -> str:
+    """Copy TheGame.dll next to GAME.exe (`just copy-dll`)."""
+    return _run_tool(
+        copy_dll,
+        dll_config=dll_config,
+        game_exe=game_exe or None,
+    )
+
+
+@mcp.tool()
+def ctl_clear_logs(game_exe: str = "") -> str:
+    """Delete shipping log files next to GAME.exe (`just clear-logs`)."""
+    return _run_tool(clear_logs, game_exe=game_exe or None)
+
+
+@mcp.tool()
+def ctl_copy_logs(game_exe: str = "") -> str:
+    """Copy shipping logs into logs/runs/<run_id>/ (`just copy-logs`)."""
+    return _run_tool(copy_logs, game_exe=game_exe or None)
+
+
+@mcp.tool()
+def ctl_copy_logs_run(run_id: str, game_exe: str = "") -> str:
+    """Copy shipping logs into logs/runs/<run_id>/ for a specific run (`just copy-logs-run`)."""
+    return _run_tool(copy_logs, run_id=run_id, game_exe=game_exe or None)
 
 
 @mcp.tool()
@@ -92,7 +124,7 @@ def ctl_launch(
     game_exe: str = "",
     env: str = "",
 ) -> str:
-    """Clear shipping logs, fetch credentials, and start the game."""
+    """Clear shipping logs, fetch credentials, and start the game (`just launch`)."""
     return _run_tool(
         launch,
         game_exe=game_exe or None,
@@ -104,16 +136,35 @@ def ctl_launch(
 
 
 @mcp.tool()
+def ctl_relaunch(
+    server_ip: str = "",
+    game_exe: str = "",
+    env: str = "",
+    dll_config: str = "debug",
+) -> str:
+    """Copy TheGame.dll then launch (`just relaunch`)."""
+    return _run_tool(
+        relaunch,
+        game_exe=game_exe or None,
+        server_ip=server_ip or None,
+        offline=False,
+        proxy=False,
+        env=env or None,
+        dll_config=dll_config,
+    )
+
+
+@mcp.tool()
 def ctl_launch_offline(
-    server_ip: str = "127.0.0.1",
+    server_ip: str = "",
     game_exe: str = "",
     env: str = "",
 ) -> str:
-    """Clear logs and launch with local entry + real auth (proxy mode; use with server proxy)."""
+    """Launch with --proxy: local entry (127.0.0.1) + real auth (`just launch-offline`)."""
     return _run_tool(
         launch,
         game_exe=game_exe or None,
-        server_ip=server_ip,
+        server_ip=server_ip or None,
         offline=False,
         proxy=True,
         env=env or None,
@@ -121,94 +172,36 @@ def ctl_launch_offline(
 
 
 @mcp.tool()
-def ctl_launch_dummy(
-    server_ip: str = "127.0.0.1",
-    game_exe: str = "",
-    env: str = "",
-) -> str:
-    """Clear logs and launch with offline localhost token (no API auth)."""
+def ctl_wait_menu(timeout: float = 120.0) -> str:
+    """Block until game stage shard_select (`just wait-menu`)."""
+    return _run_tool(wait_for_stage, stage="shard_select", timeout=timeout)
+
+
+@mcp.tool()
+def ctl_wait_stage(stage: str, timeout: float = 120.0) -> str:
+    """Block until the game reaches a diagnostics stage (`just wait-stage`)."""
+    return _run_tool(wait_for_stage, stage=stage, timeout=timeout)
+
+
+@mcp.tool()
+def ctl_wait_lobby(shard_timeout: float = 120.0, lobby_timeout: float = 10.0) -> str:
+    """Wait shard_select, send nav_pass_shard_select, wait lobby (`just wait-lobby`)."""
     return _run_tool(
-        launch,
-        game_exe=game_exe or None,
-        server_ip=server_ip,
-        offline=True,
-        proxy=False,
-        env=env or None,
+        wait_lobby,
+        shard_timeout=shard_timeout,
+        lobby_timeout=lobby_timeout,
     )
-
-
-@mcp.tool()
-def ctl_kill() -> str:
-    """Kill the tracked GAME.exe / launcher session."""
-    return _run_tool(kill, all=False)
-
-
-@mcp.tool()
-def ctl_kill_all() -> str:
-    """Kill all GAME.exe and GameLauncher.exe processes."""
-    return _run_tool(kill, all=True)
-
-
-@mcp.tool()
-def ctl_relaunch(
-    server_ip: str = "",
-    game_exe: str = "",
-    env: str = "",
-) -> str:
-    """Kill current session then launch (clear-logs + spawn)."""
-    try:
-        kill_result = kill(all=False)
-        launch_result = launch(
-            game_exe=game_exe or None,
-            server_ip=server_ip or None,
-            offline=False,
-            proxy=False,
-            env=env or None,
-        )
-        return _format_result({"kill": kill_result, "launch": launch_result})
-    except DaemonNotRunningError as e:
-        return _format_result({"status": "error", "error": str(e)})
-    except (RuntimeError, ValueError, OSError) as e:
-        return _format_result({"status": "error", "error": str(e)})
-
-
-@mcp.tool()
-def ctl_copy_dll(dll_config: str = "debug", game_exe: str = "") -> str:
-    """Copy TheGame.dll next to GAME.exe (CMake preset or msvc-x86-* name)."""
-    return _run_tool(
-        copy_dll,
-        dll_config=dll_config,
-        game_exe=game_exe or None,
-    )
-
-
-@mcp.tool()
-def ctl_clear_logs(game_exe: str = "") -> str:
-    """Delete shipping log files next to GAME.exe (per ctl.yaml game_log_files)."""
-    return _run_tool(clear_logs, game_exe=game_exe or None)
-
-
-@mcp.tool()
-def ctl_copy_logs(game_exe: str = "") -> str:
-    """Copy shipping logs into logs/runs/<run_id>/ for the current session."""
-    return _run_tool(copy_logs, game_exe=game_exe or None)
-
-
-@mcp.tool()
-def ctl_copy_logs_run(run_id: str, game_exe: str = "") -> str:
-    """Copy shipping logs into logs/runs/<run_id>/ for a specific run."""
-    return _run_tool(copy_logs, run_id=run_id, game_exe=game_exe or None)
 
 
 @mcp.tool()
 def ctl_commands() -> str:
-    """List handler commands supported by the connected game (handler pipe)."""
+    """List handler commands supported by the connected game (`just commands`)."""
     return _run_tool(handler_commands)
 
 
 @mcp.tool()
 def ctl_send(message: str) -> str:
-    """Send a line-oriented command to the game on the handler pipe (must reply ok)."""
+    """Send a line-oriented command to the game on the handler pipe (`just send`)."""
     return _run_tool(send, message=message)
 
 

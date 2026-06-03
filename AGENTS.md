@@ -5,7 +5,7 @@
 
 ## MCP (Cursor / Claude Desktop)
 
-Client commands are also exposed as MCP tools (no `just` / justfile path required). The elevated **daemon must already be running** (`gsudo ctl -d` or `just daemon-bg`).
+Client commands are also exposed as MCP tools (no `just` / justfile path required). The elevated **daemon must already be running** (check with `ping` command).
 
 **Setup:** `uv sync` once (creates `.venv` with `ctl-mcp`).
 
@@ -19,7 +19,7 @@ Client commands are also exposed as MCP tools (no `just` / justfile path require
   "args": [
     "run",
     "--project",
-    "C:\\Users\\Svyat\\Desktop\\RE\\GameController",
+    "C:\\path\\to\\controller\\",
     "ctl-mcp"
   ]
 }
@@ -28,47 +28,48 @@ Client commands are also exposed as MCP tools (no `just` / justfile path require
 Or point at the venv entrypoint after `uv sync`:
 
 ```json
-"command": "C:\\Users\\Svyat\\Desktop\\RE\\GameController\\.venv\\Scripts\\ctl-mcp.exe",
+"command": "C:\\path\\to\\controller\\.venv\\Scripts\\ctl-mcp.exe",
 "args": []
 ```
 
-Do **not** run `mcp_server.py` with system Python — dependencies live in this repo’s `.venv` only.
+Do **not** run `mcp_server.py` with system Python - dependencies live in this repo's `.venv` only.
 
-`ctl_stop` / daemon start are intentionally **not** exposed over MCP (human-only per below).
+`ctl_stop`, `daemon`, and `daemon-bg` are intentionally **not** exposed over MCP (human-only per below).
 
-## Usage (from game repo root)
+## Usage
 
-- `just --list` - all recipes; controller client commands are under **`ctl::`**
-- **`just ctl::<command>`** - e.g. `just ctl::ping`, `just ctl::copy-dll`, `just ctl::launch-offline`, `just ctl::wait-stage shard_choice`, `just ctl::kill-all`
-- `just ping` at repo root is an **alias** for `just ctl::ping` only; do **not** assume `just copy-dll` / `just kill-all` exist at root.
-
-When this tree is a submodule, parent `justfile` should `mod ctl` the same way.
+- `just --list` - all recipes in this repo's [justfile](justfile)
 
 ### Config
 
-- [`ctl.yaml`](ctl.yaml) — pipe names, DLL paths, `game_log_files` (copy from [`ctl.yaml.example`](ctl.yaml.example))
-- `launch` runs `clear-logs` then starts the game (no log clearing inside launch RPC)
+- [`ctl.yaml`](ctl.yaml) - pipe names, DLL paths, `game_log_files` (copy from [`ctl.yaml.example`](ctl.yaml.example))
+- [`launch.yaml`](launch.yaml) - `GAME_PATH`, `LAUNCHER_ROOT`, optional `DLL_BUILD_ROOT` (copy from [`launch.yaml.example`](launch.yaml.example)); used when `ctl` / `just` omit `-p`
+- `launch` / `relaunch` / `launch-offline` run `clear-logs` then start the game (no extra log clearing inside launch RPC)
 
-### Supported commands (invoke as `just ctl::<name>`)
+### Supported commands
+
+MCP tools mirror root `just` recipes.
 
 - `ping` - daemon status
 - `processes` - list of running GAME.exe / GameLauncher.exe
 - `status` - current session status
 - `stages` - known stages + seen stages for current session
-- `kill` - kills the running GAME.exe instance.
+- `kill` - kills the tracked GAME.exe session
 - `kill-all` - kills all running GAME.exe / GameLauncher.exe processes
-- `copy-dll [dll_config=debug]` - any CMake build preset (e.g. `debug-diag-no-map`) or full `msvc-x86-*` name; resolves to `build/msvc-x86-<preset>/bin/TheGame.dll`
+- `copy-dll [dll_config=debug]` - CMake preset or `msvc-x86-*` name → `build/msvc-x86-<preset>/bin/TheGame.dll`
 - `clear-logs` - deletes shipping log files next to GAME.exe (per `game_log_files` in ctl.yaml)
-- `copy-logs` - copies shipping logs into `logs/runs/<run_id>/` (names from `game_log_files`)
-- `copy-logs-run <run_id>` - copies logs from game directory with specified run_id.
-- `launch [server_ip=] [env=]` - clear-logs, then exchange credentials and start the game. `<server_ip>` is overriden if not empty. `env` is semicolon-separated `name=value` pairs passed to GameLauncher (e.g. `env="FOO=1;BAR=two"`).
-- `launch-offline [server_ip=] [env=]` - clear-logs, then start the game without fetching credentials (auth disabled).
-- `relaunch`, `launch-dummy` - same optional `env=` as `launch`.
-- `wait-menu` - blocks until game stage `shard_select` (alias for `wait-stage shard_select`)
-- `wait-stage <stage> [timeout=]` - blocks until specific game stage. timeout=120 by default.
+- `copy-logs` - copies shipping logs into `logs/runs/<run_id>/`
+- `copy-logs-run <run_id>` - copies logs for a specific run id
+- `launch` - clear-logs, then exchange credentials and start; pass ctl flags (e.g. `-s 1.2.3.4`, `--env VAR=val`)
+- `relaunch` - `copy-dll` then `launch` (same optional ctl flags as `launch`)
+- `launch-offline` - clear-logs, then `ctl launch --proxy` (local entry + real auth for transparent proxy)
+- `wait-menu` - blocks until `shard_select` (alias for `wait-stage shard_select`)
+- `wait-stage <stage> [timeout=120]` - blocks until a diagnostics stage
+- `wait-lobby` - `wait-stage shard_select`, `send nav_pass_shard_select`, `wait-stage lobby`
 - `commands` - list handler commands the game supports (handler pipe)
-- `send <message>` - send a line-oriented command to the game on the handler pipe (e.g. `nav-menu`); game must reply `ok`
+- `send <message>` - send a line-oriented command on the handler pipe (e.g. `nav_pass_shard_select`); game must reply `ok`
+
 ### Commands available only with human approval
 
-- `stop` - stops the daemon. Daemon can be only started by human, so this action alone is destructive for workflow.
-- `daemon` and `deamon-bg`. Daemon requires elevation with UAC, so only human can do this.
+- `stop` - stops the daemon
+- `daemon`, `daemon-bg` - start elevated daemon (UAC / gsudo)

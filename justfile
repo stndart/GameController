@@ -2,14 +2,15 @@
 #
 # One-time elevated daemon:
 #   just daemon-bg
-# From repo root (parent justfile has `mod ctl`):
-#   just ctl::ping
-#   just ctl::launch
+# Then non-elevated client commands:
+#   just ping
+#   just launch
+#
+# Game path: copy launch.yaml.example → launch.yaml (or ctl -p / MCP game_exe).
 
 set windows-shell := ["powershell.exe", "-NoLogo", "-Command"]
 
 ctl := "uv run ctl"
-game_exe := 'G:\Games\FA\FA-EMU\Shipping\GAME.exe'
 
 default:
     @just --list
@@ -45,31 +46,31 @@ kill:
 kill-all:
     {{ctl}} kill --all
 
-# e.g. just ctl::copy-dll debug-diag-no-map  →  build/msvc-x86-debug-diag-no-map/bin/TheGame.dll
+# e.g. just copy-dll debug-diag-no-map  →  build/msvc-x86-debug-diag-no-map/bin/TheGame.dll
 copy-dll dll_config="debug":
-    {{ctl}} copy-dll --dll-config {{dll_config}} -p "{{game_exe}}"
+    {{ctl}} copy-dll --dll-config {{dll_config}}
 
 clear-logs:
-    {{ctl}} clear-logs -p "{{game_exe}}"
+    {{ctl}} clear-logs
 
 copy-logs:
-    {{ctl}} copy-logs -p "{{game_exe}}"
+    {{ctl}} copy-logs
 
 copy-logs-run run_id:
-    {{ctl}} copy-logs --run-id {{run_id}} -p "{{game_exe}}"
+    {{ctl}} copy-logs --run-id {{run_id}}
 
 # Pass ctl flags through, e.g. just launch --env TEST_VAR=kek  or  just launch -s 1.2.3.4
 # Empty -s (just launch -s "") means no server IP override (API / defaults).
 launch *flags:
-    {{ctl}} launch -p "{{game_exe}}" {{flags}}
+    {{ctl}} launch {{flags}}
 
 relaunch *flags:
     {{ctl}} copy-dll
-    {{ctl}} launch -p "{{game_exe}}" {{flags}}
+    {{ctl}} launch {{flags}}
 
 # Local entry (127.0.0.1) + real auth for transparent proxy (just server::proxy).
 launch-offline *flags:
-    {{ctl}} launch -p "{{game_exe}}" --proxy {{flags}}
+    {{ctl}} launch --proxy {{flags}}
 
 wait-menu:
     {{ctl}} wait-for-stage shard_select --timeout 120

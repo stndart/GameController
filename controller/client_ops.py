@@ -80,6 +80,39 @@ def launch(
     )
 
 
+def relaunch(
+    *,
+    game_exe: Path | str | None = None,
+    server_ip: str | None = None,
+    offline: bool = False,
+    proxy: bool = False,
+    env: str | dict[str, str] | None = None,
+    dll_config: str = "debug",
+) -> dict:
+    copy_result = copy_dll(dll_config=dll_config, game_exe=game_exe)
+    launch_result = launch(
+        game_exe=game_exe,
+        server_ip=server_ip,
+        offline=offline,
+        proxy=proxy,
+        env=env,
+    )
+    return {"copy_dll": copy_result, "launch": launch_result}
+
+
+def wait_lobby(
+    *,
+    shard_timeout: float = 120.0,
+    lobby_timeout: float = 10.0,
+) -> dict:
+    shard = wait_for_stage("shard_select", timeout=shard_timeout)
+    if not shard.get("reached"):
+        return {"shard_select": shard, "nav": None, "lobby": None}
+    nav = send("nav_pass_shard_select")
+    lobby = wait_for_stage("lobby", timeout=lobby_timeout)
+    return {"shard_select": shard, "nav": nav, "lobby": lobby}
+
+
 def kill(*, all: bool = False) -> dict:
     return rpc(KillCommand(all=all))
 
@@ -143,9 +176,11 @@ __all__ = [
     "launch",
     "ping",
     "processes",
+    "relaunch",
     "send",
     "stages",
     "status",
     "stop",
     "wait_for_stage",
+    "wait_lobby",
 ]
