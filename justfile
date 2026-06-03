@@ -75,7 +75,6 @@ wait-menu:
     {{ctl}} wait-for-stage shard_select --timeout 120
 
 wait-lobby:
-    just launch
     just wait-stage shard_select 120
     just send nav_pass_shard_select
     just wait-stage lobby 10
